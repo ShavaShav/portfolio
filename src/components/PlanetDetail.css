@@ -1,0 +1,108 @@
+﻿.planet-detail {
+  display: grid;
+  gap: 16px;
+  max-height: 58vh;
+  overflow-y: auto;
+  padding-right: 8px;
+  color: #d6ffe8;
+  font-family: var(--font-mono);
+}
+
+.planet-detail__header {
+  display: grid;
+  gap: 4px;
+}
+
+.planet-detail__header h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+}
+
+.planet-detail__meta,
+.planet-detail__location,
+.planet-detail__summary {
+  margin: 0;
+  color: rgba(214, 255, 232, 0.85);
+  line-height: 1.45;
+}
+
+.planet-detail__block {
+  border: 1px solid rgba(0, 255, 136, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 14, 18, 0.72);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.planet-detail__block h3 {
+  margin: 0;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.planet-detail__block ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.planet-detail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.planet-detail__chip {
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  background: rgba(0, 255, 136, 0.12);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.planet-detail__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.planet-detail__links a,
+.planet-detail__project-card {
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  background: rgba(0, 255, 136, 0.1);
+  color: #eafff5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.planet-detail__links a:hover,
+.planet-detail__project-card:hover {
+  background: rgba(0, 255, 136, 0.2);
+}
+
+.planet-detail__project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.planet-detail__mission-btn {
+  justify-self: start;
+  border: 1px solid rgba(0, 255, 136, 0.45);
+  background: rgba(0, 255, 136, 0.15);
+  color: #f2fff8;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+
+.planet-detail__mission-btn:hover {
+  background: rgba(0, 255, 136, 0.28);
+}
