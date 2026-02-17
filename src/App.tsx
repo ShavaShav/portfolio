@@ -14,12 +14,18 @@ function ViewRenderer() {
       return <Terminal onLaunch={() => dispatch({ type: "LAUNCH" })} />;
     }
     case "SOLAR_SYSTEM": {
-      return <SolarSystem />;
+      return (
+        <SolarSystem
+          onPlanetSelect={(planetId) =>
+            dispatch({ type: "FLY_TO_PLANET", planetId })
+          }
+        />
+      );
     }
     case "FLYING_TO_PLANET": {
       return (
         <CockpitLayout
-          canvas={<SolarSystem />}
+          canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
           screens={{
             nav: <div>NavScreen</div>,
             data: <div>Flying to {state.view.planetId}</div>,
@@ -33,7 +39,7 @@ function ViewRenderer() {
       const planetId = state.view.planetId;
       return (
         <CockpitLayout
-          canvas={<SolarSystem />}
+          canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
           screens={{
             nav: <div>NavScreen</div>,
             data: (
@@ -60,7 +66,7 @@ function ViewRenderer() {
 
       return (
         <CockpitLayout
-          canvas={<SolarSystem />}
+          canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
           screens={{
             nav: <div>NavScreen</div>,
             data: (
@@ -79,7 +85,7 @@ function ViewRenderer() {
     case "FLYING_HOME": {
       return (
         <CockpitLayout
-          canvas={<SolarSystem />}
+          canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
           screens={{
             nav: <div>NavScreen</div>,
             data: <div>Returning to system overview</div>,

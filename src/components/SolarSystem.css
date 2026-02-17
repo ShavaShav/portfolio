@@ -1,0 +1,66 @@
+﻿.solar-system {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: radial-gradient(
+    circle at 50% 50%,
+    #101632 0%,
+    #04060d 60%,
+    #020206 100%
+  );
+}
+
+.solar-system canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.solar-system__hint {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  border-radius: 999px;
+  background: rgba(10, 10, 15, 0.72);
+  color: #d2ffe9;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+}
+
+.planet-label {
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 6px;
+  background: rgba(8, 10, 18, 0.82);
+  color: #ecfff7;
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  opacity: 0.75;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  font-family: var(--font-mono);
+}
+
+.planet-label strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.planet-label span {
+  font-size: 10px;
+  line-height: 1.2;
+  color: rgba(220, 255, 239, 0.75);
+}
+
+.planet-label--active {
+  opacity: 1;
+  transform: translateY(-2px);
+}
