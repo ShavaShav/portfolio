@@ -1,5 +1,6 @@
 ﻿import { Canvas } from "@react-three/fiber";
 import { useCallback } from "react";
+import { Stars } from "@react-three/drei";
 import { CAMERA_DEFAULT } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
 import { CameraController } from "./three/CameraController";
@@ -7,7 +8,6 @@ import { OrbitLine } from "./three/OrbitLine";
 import { Planet } from "./three/Planet";
 import { PostProcessing } from "./three/PostProcessing";
 import { Sun } from "./three/Sun";
-import { Stars } from "@react-three/drei";
 import "./SolarSystem.css";
 
 type SolarSystemProps = {
@@ -18,6 +18,7 @@ type SolarSystemProps = {
   isFlyingHome?: boolean;
   onArrivePlanet?: (planetId: string) => void;
   onArriveHome?: () => void;
+  showHint?: boolean;
 };
 
 export function SolarSystem({
@@ -28,6 +29,7 @@ export function SolarSystem({
   isFlyingHome = false,
   onArrivePlanet,
   onArriveHome,
+  showHint = true,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -91,9 +93,11 @@ export function SolarSystem({
         <PostProcessing />
       </Canvas>
 
-      <div className="solar-system__hint">
-        Click a planet to initiate fly-to.
-      </div>
+      {showHint ? (
+        <div className="solar-system__hint">
+          Click a planet to initiate fly-to.
+        </div>
+      ) : null}
     </div>
   );
 }

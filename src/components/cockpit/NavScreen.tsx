@@ -1,0 +1,54 @@
+﻿import { PLANETS } from "../../data/planets";
+import type { AppView } from "../../state/AppState";
+import { CockpitScreen } from "./CockpitScreen";
+import { MiniSystemMap } from "./MiniSystemMap";
+
+type NavScreenProps = {
+  viewType: AppView["type"];
+  activePlanetId?: string;
+  onSelectPlanet: (planetId: string) => void;
+  onFlyHome?: () => void;
+  visitedPlanets: Set<string>;
+};
+
+export function NavScreen({
+  viewType,
+  activePlanetId,
+  onSelectPlanet,
+  onFlyHome,
+  visitedPlanets,
+}: NavScreenProps) {
+  return (
+    <CockpitScreen title="NAV SYSTEM" powered>
+      <MiniSystemMap
+        activePlanetId={activePlanetId}
+        onSelectPlanet={onSelectPlanet}
+        visitedPlanets={visitedPlanets}
+      />
+
+      <div className="nav-screen__list">
+        {PLANETS.map((planet) => (
+          <button
+            className={`nav-screen__planet ${planet.id === activePlanetId ? "is-active" : ""}`}
+            key={planet.id}
+            onClick={() => onSelectPlanet(planet.id)}
+            type="button"
+          >
+            <span>{planet.label}</span>
+            {visitedPlanets.has(planet.id) ? <small>visited</small> : null}
+          </button>
+        ))}
+      </div>
+
+      {viewType !== "SOLAR_SYSTEM" && onFlyHome ? (
+        <button
+          className="nav-screen__return"
+          onClick={onFlyHome}
+          type="button"
+        >
+          {"<- Return To Overview"}
+        </button>
+      ) : null}
+    </CockpitScreen>
+  );
+}

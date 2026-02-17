@@ -1,4 +1,6 @@
-﻿import type { ReactNode } from "react";
+﻿import { useEffect, useState, type ReactNode } from "react";
+import { CockpitFrame } from "./CockpitFrame";
+import "./cockpit.css";
 
 type CockpitLayoutProps = {
   canvas: ReactNode;
@@ -8,17 +10,45 @@ type CockpitLayoutProps = {
     companion: ReactNode;
     status: ReactNode;
   };
+  audioEnabled: boolean;
+  onToggleAudio: () => void;
 };
 
-export function CockpitLayout({ canvas, screens }: CockpitLayoutProps) {
+export function CockpitLayout({
+  canvas,
+  screens,
+  audioEnabled,
+  onToggleAudio,
+}: CockpitLayoutProps) {
+  const [booted, setBooted] = useState(false);
+
+  useEffect(() => {
+    const rafId = window.requestAnimationFrame(() => setBooted(true));
+    return () => window.cancelAnimationFrame(rafId);
+  }, []);
+
   return (
-    <div className="cockpit-placeholder">
-      <div className="cockpit-placeholder__bezel">CockpitLayout</div>
-      <div className="cockpit-placeholder__viewport">{canvas}</div>
-      <div className="cockpit-placeholder__screen">{screens.nav}</div>
-      <div className="cockpit-placeholder__screen">{screens.data}</div>
-      <div className="cockpit-placeholder__screen">{screens.companion}</div>
-      <div className="cockpit-placeholder__screen">{screens.status}</div>
+    <div className={`cockpit-layout ${booted ? "is-booted" : ""}`}>
+      <div className="cockpit-layout__canvas">{canvas}</div>
+
+      <CockpitFrame
+        audioEnabled={audioEnabled}
+        booted={booted}
+        onToggleAudio={onToggleAudio}
+      />
+
+      <div className="cockpit-layout__panel cockpit-layout__nav">
+        {screens.nav}
+      </div>
+      <div className="cockpit-layout__panel cockpit-layout__data">
+        {screens.data}
+      </div>
+      <div className="cockpit-layout__panel cockpit-layout__companion">
+        {screens.companion}
+      </div>
+      <div className="cockpit-layout__panel cockpit-layout__status">
+        {screens.status}
+      </div>
     </div>
   );
 }
