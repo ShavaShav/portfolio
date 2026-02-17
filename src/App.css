@@ -1,42 +1,109 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+﻿.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.debug-controls {
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  background: rgba(10, 10, 15, 0.85);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.debug-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.debug-controls button {
+  border: 1px solid rgba(0, 255, 136, 0.5);
+  background: rgba(0, 255, 136, 0.1);
+  color: #f0f0ff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.debug-controls button:hover {
+  background: rgba(0, 255, 136, 0.2);
+}
+
+.debug-controls__state {
+  margin: 0;
+  color: rgba(240, 240, 255, 0.9);
+  font-size: 13px;
+}
+
+.placeholder-card {
+  min-height: 240px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  background: rgba(10, 10, 15, 0.75);
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.placeholder-card h2,
+.placeholder-card p {
+  margin: 0;
+}
+
+.placeholder-card button {
+  justify-self: start;
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  background: rgba(0, 255, 136, 0.12);
+  color: #f0f0ff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.cockpit-placeholder {
+  min-height: 420px;
+  border: 1px solid rgba(240, 240, 255, 0.2);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 40px 1fr auto;
+  gap: 12px;
+  background: rgba(12, 13, 20, 0.75);
+}
+
+.cockpit-placeholder__bezel {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(240, 240, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.cockpit-placeholder__viewport {
+  min-height: 240px;
+  border: 1px solid rgba(240, 240, 255, 0.2);
+  border-radius: 8px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cockpit-placeholder__screen {
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+@media (max-width: 900px) {
+  .cockpit-placeholder {
+    grid-template-columns: 1fr;
   }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }
