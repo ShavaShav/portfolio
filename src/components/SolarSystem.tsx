@@ -1,23 +1,33 @@
-﻿import { OrbitControls, Stars } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+﻿import { Canvas } from "@react-three/fiber";
 import { useCallback } from "react";
+import { CAMERA_DEFAULT } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
+import { CameraController } from "./three/CameraController";
 import { OrbitLine } from "./three/OrbitLine";
 import { Planet } from "./three/Planet";
 import { PostProcessing } from "./three/PostProcessing";
 import { Sun } from "./three/Sun";
+import { Stars } from "@react-three/drei";
 import "./SolarSystem.css";
 
 type SolarSystemProps = {
   onPlanetSelect?: (planetId: string) => void;
   showOrbitLines?: boolean;
   starCount?: number;
+  flyToPlanetId?: string;
+  isFlyingHome?: boolean;
+  onArrivePlanet?: (planetId: string) => void;
+  onArriveHome?: () => void;
 };
 
 export function SolarSystem({
   onPlanetSelect,
   showOrbitLines = true,
   starCount = 5000,
+  flyToPlanetId,
+  isFlyingHome = false,
+  onArrivePlanet,
+  onArriveHome,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -33,7 +43,12 @@ export function SolarSystem({
 
   return (
     <div className="solar-system">
-      <Canvas camera={{ fov: 60, position: [0, 8, 22] }}>
+      <Canvas
+        camera={{
+          fov: CAMERA_DEFAULT.fov,
+          position: CAMERA_DEFAULT.position,
+        }}
+      >
         <color args={["#04060d"]} attach="background" />
         <ambientLight intensity={0.25} />
         <pointLight color="#ffd28a" intensity={2.2} position={[0, 0, 0]} />
@@ -67,11 +82,11 @@ export function SolarSystem({
           />
         ))}
 
-        <OrbitControls
-          dampingFactor={0.05}
-          enableDamping
-          maxDistance={34}
-          minDistance={10}
+        <CameraController
+          flyToPlanetId={flyToPlanetId}
+          isFlyingHome={isFlyingHome}
+          onArriveHome={onArriveHome}
+          onArrivePlanet={onArrivePlanet}
         />
         <PostProcessing />
       </Canvas>

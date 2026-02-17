@@ -25,7 +25,16 @@ function ViewRenderer() {
     case "FLYING_TO_PLANET": {
       return (
         <CockpitLayout
-          canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
+          canvas={
+            <SolarSystem
+              flyToPlanetId={state.view.planetId}
+              onArrivePlanet={(planetId) =>
+                dispatch({ type: "ARRIVE_AT_PLANET", planetId })
+              }
+              showOrbitLines={false}
+              starCount={3000}
+            />
+          }
           screens={{
             nav: <div>NavScreen</div>,
             data: <div>Flying to {state.view.planetId}</div>,
@@ -41,7 +50,14 @@ function ViewRenderer() {
         <CockpitLayout
           canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
           screens={{
-            nav: <div>NavScreen</div>,
+            nav: (
+              <button
+                onClick={() => dispatch({ type: "FLY_HOME" })}
+                type="button"
+              >
+                Return To Overview
+              </button>
+            ),
             data: (
               <PlanetDetail
                 planetId={planetId}
@@ -68,7 +84,14 @@ function ViewRenderer() {
         <CockpitLayout
           canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
           screens={{
-            nav: <div>NavScreen</div>,
+            nav: (
+              <button
+                onClick={() => dispatch({ type: "FLY_HOME" })}
+                type="button"
+              >
+                Return To Overview
+              </button>
+            ),
             data: (
               <Mission
                 planetId={planetId}
@@ -85,7 +108,14 @@ function ViewRenderer() {
     case "FLYING_HOME": {
       return (
         <CockpitLayout
-          canvas={<SolarSystem showOrbitLines={false} starCount={3000} />}
+          canvas={
+            <SolarSystem
+              isFlyingHome
+              onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
+              showOrbitLines={false}
+              starCount={3000}
+            />
+          }
           screens={{
             nav: <div>NavScreen</div>,
             data: <div>Returning to system overview</div>,

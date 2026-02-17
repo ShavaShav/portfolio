@@ -119,3 +119,16 @@ export const PLANETS: PlanetConfig[] = [
 export function getPlanetById(planetId: string) {
   return PLANETS.find((planet) => planet.id === planetId);
 }
+
+export function getPlanetPositionAtTime(
+  planet: PlanetConfig,
+  elapsedTime: number,
+) {
+  const angle = elapsedTime * planet.orbitSpeed + planet.orbitPhase;
+
+  return {
+    x: planet.orbitRadius * Math.cos(angle),
+    y: Math.sin(angle) * planet.orbitInclination * planet.orbitRadius * 0.2,
+    z: planet.orbitRadius * Math.sin(angle),
+  };
+}

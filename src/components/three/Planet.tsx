@@ -2,7 +2,8 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import type { Group, Mesh } from "three";
-import type { PlanetConfig } from "../../data/planets";
+import { DoubleSide } from "three";
+import { getPlanetPositionAtTime, type PlanetConfig } from "../../data/planets";
 
 type PlanetProps = {
   planet: PlanetConfig;
@@ -24,15 +25,14 @@ export function Planet({ planet, onSelect }: PlanetProps) {
 
   useFrame(({ clock }, delta) => {
     const elapsed = clock.getElapsedTime();
-    const angle = elapsed * planet.orbitSpeed + planet.orbitPhase;
-
-    const x = planet.orbitRadius * Math.cos(angle);
-    const z = planet.orbitRadius * Math.sin(angle);
-    const y =
-      Math.sin(angle) * planet.orbitInclination * planet.orbitRadius * 0.2;
+    const planetPosition = getPlanetPositionAtTime(planet, elapsed);
 
     if (groupRef.current) {
-      groupRef.current.position.set(x, y, z);
+      groupRef.current.position.set(
+        planetPosition.x,
+        planetPosition.y,
+        planetPosition.z,
+      );
     }
 
     if (meshRef.current) {
@@ -75,7 +75,7 @@ export function Planet({ planet, onSelect }: PlanetProps) {
           <meshBasicMaterial
             color={planet.ringColor ?? "#ffffff"}
             opacity={0.42}
-            side={2}
+            side={DoubleSide}
             transparent
           />
         </Ring>
