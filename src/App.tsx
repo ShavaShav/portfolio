@@ -8,6 +8,7 @@ import { CockpitLayout } from "./components/cockpit/CockpitLayout";
 import { DataScreen } from "./components/cockpit/DataScreen";
 import { NavScreen } from "./components/cockpit/NavScreen";
 import { StatusBar } from "./components/cockpit/StatusBar";
+import { getMissionForPlanet } from "./data/missions";
 import { PLANETS } from "./data/planets";
 import { AppProvider, useAppContext } from "./state/AppState";
 
@@ -51,6 +52,7 @@ function renderDataContent(
     }
     case "PLANET_DETAIL": {
       const planetId = state.view.planetId;
+      const mission = getMissionForPlanet(planetId);
       return {
         title: "PLANET DATA",
         content: (
@@ -58,7 +60,7 @@ function renderDataContent(
             onStartMission={() =>
               dispatch({
                 type: "ENTER_MISSION",
-                missionId: `${planetId}-mission`,
+                missionId: mission?.id ?? `${planetId}-mission`,
                 planetId,
               })
             }
@@ -105,6 +107,12 @@ function CockpitExperience() {
       : undefined;
 
   const dataScreen = renderDataContent(state, dispatch);
+  const companionMode =
+    state.view.type === "MISSION"
+      ? "copilot"
+      : state.view.type === "PLANET_DETAIL"
+        ? "active"
+        : "standby";
 
   return (
     <CockpitLayout
@@ -157,17 +165,18 @@ function CockpitExperience() {
           <DataScreen
             contentKey={`${state.view.type}:${activePlanetId ?? "none"}`}
             onBack={
-              state.view.type === "PLANET_DETAIL" ||
               state.view.type === "MISSION"
-                ? () => dispatch({ type: "FLY_HOME" })
-                : undefined
+                ? () => dispatch({ type: "EXIT_MISSION" })
+                : state.view.type === "PLANET_DETAIL"
+                  ? () => dispatch({ type: "FLY_HOME" })
+                  : undefined
             }
             title={dataScreen.title}
           >
             {dataScreen.content}
           </DataScreen>
         ),
-        companion: <CompanionScreen mode="standby" />,
+        companion: <CompanionScreen mode={companionMode} />,
         status: (
           <StatusBar
             totalPlanets={PLANETS.length}
