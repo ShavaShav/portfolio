@@ -1,0 +1,71 @@
+﻿.terminal-screen {
+  position: fixed;
+  inset: 0;
+  background: #020204;
+  color: #00ff88;
+  font-family: var(--font-mono);
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  cursor: text;
+  transition:
+    opacity 0.5s ease,
+    filter 0.5s ease;
+}
+
+.terminal-screen--fade {
+  opacity: 0;
+  filter: blur(4px);
+}
+
+.terminal-screen__output {
+  flex: 1;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  scrollbar-width: thin;
+}
+
+.terminal-screen__line,
+.terminal-screen__prompt {
+  margin: 0;
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+.terminal-screen__line--amber {
+  color: #ffaa00;
+}
+
+.terminal-screen__prompt {
+  margin-top: 6px;
+}
+
+.terminal-screen__prompt-label {
+  color: #66ffc0;
+}
+
+.terminal-screen__cursor {
+  display: inline-block;
+  animation: terminal-blink 1s steps(1) infinite;
+}
+
+.terminal-screen__hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes terminal-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}

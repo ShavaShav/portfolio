@@ -57,6 +57,7 @@ function ViewRenderer() {
     case "MISSION": {
       const planetId = state.view.planetId;
       const missionId = state.view.missionId;
+
       return (
         <CockpitLayout
           canvas={<SolarSystem />}
@@ -94,76 +95,9 @@ function ViewRenderer() {
   }
 }
 
-function DebugControls() {
-  const { state, dispatch } = useAppContext();
-
-  const activePlanetId =
-    state.view.type === "FLYING_TO_PLANET" ||
-    state.view.type === "PLANET_DETAIL" ||
-    state.view.type === "MISSION"
-      ? state.view.planetId
-      : "obviant";
-
-  return (
-    <div className="debug-controls">
-      <div className="debug-controls__row">
-        <button type="button" onClick={() => dispatch({ type: "LAUNCH" })}>
-          Launch
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            dispatch({ type: "FLY_TO_PLANET", planetId: "obviant" })
-          }
-        >
-          Fly To Obviant
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            dispatch({ type: "ARRIVE_AT_PLANET", planetId: activePlanetId })
-          }
-        >
-          Arrive Planet
-        </button>
-      </div>
-      <div className="debug-controls__row">
-        <button
-          type="button"
-          onClick={() =>
-            dispatch({
-              type: "ENTER_MISSION",
-              planetId: activePlanetId,
-              missionId: "default-mission",
-            })
-          }
-        >
-          Enter Mission
-        </button>
-        <button
-          type="button"
-          onClick={() => dispatch({ type: "EXIT_MISSION" })}
-        >
-          Exit Mission
-        </button>
-        <button type="button" onClick={() => dispatch({ type: "FLY_HOME" })}>
-          Fly Home
-        </button>
-        <button type="button" onClick={() => dispatch({ type: "ARRIVE_HOME" })}>
-          Arrive Home
-        </button>
-      </div>
-      <p className="debug-controls__state">
-        View: <strong>{state.view.type}</strong>
-      </p>
-    </div>
-  );
-}
-
 function AppShell() {
   return (
     <main className="app-shell">
-      <DebugControls />
       <ViewRenderer />
     </main>
   );
