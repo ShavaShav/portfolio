@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import "./App.css";
 import { Mission } from "./components/Mission";
 import { PlanetDetail } from "./components/PlanetDetail";
@@ -20,10 +20,10 @@ function renderDataContent(
 ) {
   switch (state.view.type) {
     case "SOLAR_SYSTEM": {
-      // If proximity detection found a nearby planet, show preview
       if (state.nearestPlanetId) {
         const nearestPlanet = getPlanetById(state.nearestPlanetId);
         const nearestContent = getPlanetContent(state.nearestPlanetId);
+
         return {
           title: `SCANNING: ${nearestPlanet?.label.toUpperCase() ?? "UNKNOWN"}`,
           content: (
@@ -90,6 +90,7 @@ function renderDataContent(
     case "PLANET_DETAIL": {
       const planetId = state.view.planetId;
       const mission = getMissionForPlanet(planetId);
+
       return {
         title: "PLANET DATA",
         content: (
@@ -143,11 +144,8 @@ function CockpitExperience() {
       : undefined;
 
   const flyingToPlanetId =
-    state.view.type === "FLYING_TO_PLANET"
-      ? state.view.planetId
-      : undefined;
+    state.view.type === "FLYING_TO_PLANET" ? state.view.planetId : undefined;
 
-  // For NavScreen highlighting: show active planet, or nearest detected planet
   const highlightedPlanetId =
     flyingToPlanetId ?? activePlanetId ?? state.nearestPlanetId ?? undefined;
 
@@ -158,6 +156,35 @@ function CockpitExperience() {
       : state.view.type === "PLANET_DETAIL"
         ? "active"
         : "standby";
+  const companionPlanet = activePlanetId ? getPlanetById(activePlanetId) : null;
+
+  useEffect(() => {
+    if (state.view.type === "PLANET_DETAIL") {
+      const expectedContext = `planet:${state.view.planetId}`;
+      if (
+        !state.companion.visible ||
+        state.companion.context !== expectedContext
+      ) {
+        dispatch({ type: "COMPANION_SHOW", context: expectedContext });
+      }
+      return;
+    }
+
+    if (state.view.type === "MISSION") {
+      const expectedContext = `mission:${state.view.missionId}`;
+      if (
+        !state.companion.visible ||
+        state.companion.context !== expectedContext
+      ) {
+        dispatch({ type: "COMPANION_SHOW", context: expectedContext });
+      }
+      return;
+    }
+
+    if (state.companion.visible || state.companion.context !== null) {
+      dispatch({ type: "COMPANION_HIDE" });
+    }
+  }, [dispatch, state.companion.context, state.companion.visible, state.view]);
 
   return (
     <CockpitLayout
@@ -165,6 +192,8 @@ function CockpitExperience() {
       canvas={
         <SolarSystem
           activePlanetId={activePlanetId}
+          companionActive={state.companion.visible}
+          companionPulsing={state.companion.isTyping}
           flyToPlanetId={flyingToPlanetId}
           isEntering={isEntering}
           isFlyingHome={state.view.type === "FLYING_HOME"}
@@ -180,6 +209,7 @@ function CockpitExperience() {
             if (isEntering) {
               return;
             }
+
             if (
               state.view.type === "FLYING_TO_PLANET" ||
               state.view.type === "FLYING_HOME"
@@ -226,7 +256,20 @@ function CockpitExperience() {
             {dataScreen.content}
           </DataScreen>
         ),
-        companion: <CompanionScreen mode={companionMode} />,
+        companion: (
+          <CompanionScreen
+            greeting={companionPlanet?.companionGreeting}
+            missionContext={
+              state.view.type === "MISSION" ? state.view.missionId : undefined
+            }
+            mode={companionMode}
+            onTypingChange={(isTyping) =>
+              dispatch({ type: "COMPANION_SET_TYPING", isTyping })
+            }
+            planetId={activePlanetId}
+            planetLabel={companionPlanet?.label}
+          />
+        ),
         status: (
           <StatusBar
             totalPlanets={PLANETS.length + 1}

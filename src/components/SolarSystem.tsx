@@ -1,9 +1,10 @@
-import { Canvas } from "@react-three/fiber";
-import { useCallback } from "react";
-import { Stars } from "@react-three/drei";
-import { CAMERA_ENTRANCE } from "../data/cameraPositions";
-import { PLANETS } from "../data/planets";
+﻿import { Stars } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useCallback, useEffect, useRef } from "react";
+import { CAMERA_DEFAULT } from "../data/cameraPositions";
+import { PLANETS, getPlanetPositionAtTime } from "../data/planets";
 import { CameraController } from "./three/CameraController";
+import { CompanionOrb } from "./three/CompanionOrb";
 import { OrbitLine } from "./three/OrbitLine";
 import { Planet } from "./three/Planet";
 import { PostProcessing } from "./three/PostProcessing";
@@ -11,33 +12,88 @@ import { Sun } from "./three/Sun";
 import "./SolarSystem.css";
 
 type SolarSystemProps = {
+  activePlanetId?: string;
   onPlanetSelect?: (planetId: string) => void;
   showOrbitLines?: boolean;
   starCount?: number;
   flyToPlanetId?: string;
   isFlyingHome?: boolean;
-  isEntering?: boolean;
-  activePlanetId?: string;
   onArrivePlanet?: (planetId: string) => void;
   onArriveHome?: () => void;
+  showHint?: boolean;
+  companionActive?: boolean;
+  companionPulsing?: boolean;
+  isEntering?: boolean;
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
-  showHint?: boolean;
 };
 
+type NearestPlanetTrackerProps = {
+  enabled: boolean;
+  onNearestPlanetChange?: (planetId: string | null) => void;
+};
+
+function NearestPlanetTracker({
+  enabled,
+  onNearestPlanetChange,
+}: NearestPlanetTrackerProps) {
+  const { camera, clock } = useThree();
+  const cooldownRef = useRef(0);
+  const previousNearestRef = useRef<string | null>(null);
+
+  useFrame((_, delta) => {
+    if (!enabled || !onNearestPlanetChange) {
+      return;
+    }
+
+    cooldownRef.current += delta;
+    if (cooldownRef.current < 0.25) {
+      return;
+    }
+
+    cooldownRef.current = 0;
+
+    const elapsed = clock.getElapsedTime();
+    let nearestId: string | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+
+    for (const planet of PLANETS) {
+      const position = getPlanetPositionAtTime(planet, elapsed);
+      const dx = camera.position.x - position.x;
+      const dy = camera.position.y - position.y;
+      const dz = camera.position.z - position.z;
+      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestId = planet.id;
+      }
+    }
+
+    if (previousNearestRef.current !== nearestId) {
+      previousNearestRef.current = nearestId;
+      onNearestPlanetChange(nearestId);
+    }
+  });
+
+  return null;
+}
+
 export function SolarSystem({
+  activePlanetId,
   onPlanetSelect,
   showOrbitLines = true,
   starCount = 5000,
   flyToPlanetId,
   isFlyingHome = false,
-  isEntering = false,
-  activePlanetId,
   onArrivePlanet,
   onArriveHome,
+  showHint = true,
+  companionActive = false,
+  companionPulsing = false,
+  isEntering = false,
   onEntranceComplete,
   onNearestPlanetChange,
-  showHint = true,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -51,12 +107,21 @@ export function SolarSystem({
     [onPlanetSelect],
   );
 
+  useEffect(() => {
+    if (!isEntering || !onEntranceComplete) {
+      return;
+    }
+
+    const timerId = window.setTimeout(onEntranceComplete, 1400);
+    return () => window.clearTimeout(timerId);
+  }, [isEntering, onEntranceComplete]);
+
   return (
     <div className="solar-system">
       <Canvas
         camera={{
-          fov: 60,
-          position: CAMERA_ENTRANCE.position,
+          fov: CAMERA_DEFAULT.fov,
+          position: CAMERA_DEFAULT.position,
         }}
       >
         <color args={["#04060d"]} attach="background" />
@@ -72,7 +137,7 @@ export function SolarSystem({
           speed={0.45}
         />
 
-        <Sun onSelect={() => handlePlanetSelect("about")} />
+        <Sun />
 
         {showOrbitLines
           ? PLANETS.map((planet) => (
@@ -92,15 +157,18 @@ export function SolarSystem({
           />
         ))}
 
+        <CompanionOrb active={companionActive} pulsing={companionPulsing} />
+
+        <NearestPlanetTracker
+          enabled={!activePlanetId}
+          onNearestPlanetChange={onNearestPlanetChange}
+        />
+
         <CameraController
-          activePlanetId={activePlanetId}
           flyToPlanetId={flyToPlanetId}
-          isEntering={isEntering}
           isFlyingHome={isFlyingHome}
           onArriveHome={onArriveHome}
           onArrivePlanet={onArrivePlanet}
-          onEntranceComplete={onEntranceComplete}
-          onNearestPlanetChange={onNearestPlanetChange}
         />
         <PostProcessing />
       </Canvas>

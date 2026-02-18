@@ -62,7 +62,18 @@ export function CameraController({
   // Keyboard event handlers for WASD flight
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const key = event.key.toLowerCase();
-    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
+    if (
+      [
+        "w",
+        "a",
+        "s",
+        "d",
+        "arrowup",
+        "arrowdown",
+        "arrowleft",
+        "arrowright",
+      ].includes(key)
+    ) {
       keysRef.current.add(key);
     }
   }, []);
@@ -373,7 +384,13 @@ export function CameraController({
     }
 
     // --- WASD / Arrow key flight (only in solar system free-flight mode) ---
-    if (!activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
+    if (
+      !activePlanetId &&
+      !flyToPlanetId &&
+      !isFlyingHome &&
+      !isEntering &&
+      controls.enabled
+    ) {
       const keys = keysRef.current;
       if (keys.size > 0) {
         // Get camera forward direction (projected onto XZ plane for horizontal movement)
