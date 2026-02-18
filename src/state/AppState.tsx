@@ -34,6 +34,7 @@ export type AppState = {
   view: AppView;
   audioEnabled: boolean;
   visitedPlanets: Set<string>;
+  nearestPlanetId: string | null;
   companion: CompanionState;
   chatSessionId: string;
 };
@@ -50,7 +51,8 @@ export type AppAction =
   | { type: "COMPANION_SHOW"; context: string }
   | { type: "COMPANION_HIDE" }
   | { type: "COMPANION_ADD_MESSAGE"; message: ChatMessage }
-  | { type: "COMPANION_SET_TYPING"; isTyping: boolean };
+  | { type: "COMPANION_SET_TYPING"; isTyping: boolean }
+  | { type: "SET_NEAREST_PLANET"; planetId: string | null };
 
 function createSessionId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -64,6 +66,7 @@ const initialState: AppState = {
   view: { type: "TERMINAL" },
   audioEnabled: false,
   visitedPlanets: new Set<string>(),
+  nearestPlanetId: null,
   companion: {
     visible: false,
     context: null,
@@ -172,6 +175,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           ...state.companion,
           isTyping: action.isTyping,
         },
+      };
+    }
+    case "SET_NEAREST_PLANET": {
+      if (state.nearestPlanetId === action.planetId) {
+        return state;
+      }
+      return {
+        ...state,
+        nearestPlanetId: action.planetId,
       };
     }
     default: {

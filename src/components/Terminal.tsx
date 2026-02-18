@@ -42,6 +42,7 @@ export function Terminal({ onLaunch }: TerminalProps) {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
+  const timeoutIdsRef = useRef<number[]>([]);
 
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
@@ -78,14 +79,16 @@ export function Terminal({ onLaunch }: TerminalProps) {
         );
 
         if (index < text.length) {
-          window.setTimeout(tick, randomTypeDelay());
+          const tid = window.setTimeout(tick, randomTypeDelay());
+          timeoutIdsRef.current.push(tid);
           return;
         }
 
         resolve();
       };
 
-      window.setTimeout(tick, randomTypeDelay());
+      const tid = window.setTimeout(tick, randomTypeDelay());
+      timeoutIdsRef.current.push(tid);
     });
   }, []);
 
@@ -184,6 +187,11 @@ export function Terminal({ onLaunch }: TerminalProps) {
 
     return () => {
       cancelled = true;
+      for (const tid of timeoutIdsRef.current) {
+        window.clearTimeout(tid);
+      }
+      timeoutIdsRef.current = [];
+      setOutputLines([]);
     };
   }, [typeLine]);
 

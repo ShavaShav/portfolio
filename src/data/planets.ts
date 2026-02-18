@@ -98,25 +98,29 @@ export const PLANETS: PlanetConfig[] = [
     companionGreeting:
       "My side projects and open source work. I love building tools that other developers use. Ask me about any of these!",
   },
-  {
-    id: "about",
-    label: "About Me",
-    subtitle: "Human behind the code",
-    color: "#3b82f6",
-    emissive: "#2563eb",
-    radius: 0.5,
-    orbitRadius: 20,
-    orbitSpeed: 0.02,
-    orbitInclination: 0.15,
-    orbitPhase: 3,
-    hasRings: false,
-    hasMission: false,
-    companionGreeting:
-      "This is the personal stuff - where I'm from, what I'm into, what makes me tick beyond code. Feel free to ask me anything.",
-  },
 ];
 
+export const SUN_AS_ABOUT: PlanetConfig = {
+  id: "about",
+  label: "About Me",
+  subtitle: "Zach Shaver",
+  color: "#ff9900",
+  emissive: "#ff5500",
+  radius: 1.5,
+  orbitRadius: 0,
+  orbitSpeed: 0,
+  orbitInclination: 0,
+  orbitPhase: 0,
+  hasRings: false,
+  hasMission: false,
+  companionGreeting:
+    "This is the personal stuff - where I'm from, what I'm into, what makes me tick beyond code. Feel free to ask me anything.",
+};
+
 export function getPlanetById(planetId: string) {
+  if (planetId === "about") {
+    return SUN_AS_ABOUT;
+  }
   return PLANETS.find((planet) => planet.id === planetId);
 }
 

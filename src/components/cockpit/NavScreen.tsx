@@ -27,6 +27,14 @@ export function NavScreen({
       />
 
       <div className="nav-screen__list">
+        <button
+          className={`nav-screen__planet nav-screen__planet--sun ${activePlanetId === "about" ? "is-active" : ""}`}
+          onClick={() => onSelectPlanet("about")}
+          type="button"
+        >
+          <span>About Me</span>
+          {visitedPlanets.has("about") ? <small>visited</small> : null}
+        </button>
         {PLANETS.map((planet) => (
           <button
             className={`nav-screen__planet ${planet.id === activePlanetId ? "is-active" : ""}`}

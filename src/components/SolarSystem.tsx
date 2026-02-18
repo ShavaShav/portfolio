@@ -1,7 +1,7 @@
-﻿import { Canvas } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { useCallback } from "react";
 import { Stars } from "@react-three/drei";
-import { CAMERA_DEFAULT } from "../data/cameraPositions";
+import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
 import { CameraController } from "./three/CameraController";
 import { OrbitLine } from "./three/OrbitLine";
@@ -16,8 +16,12 @@ type SolarSystemProps = {
   starCount?: number;
   flyToPlanetId?: string;
   isFlyingHome?: boolean;
+  isEntering?: boolean;
+  activePlanetId?: string;
   onArrivePlanet?: (planetId: string) => void;
   onArriveHome?: () => void;
+  onEntranceComplete?: () => void;
+  onNearestPlanetChange?: (planetId: string | null) => void;
   showHint?: boolean;
 };
 
@@ -27,8 +31,12 @@ export function SolarSystem({
   starCount = 5000,
   flyToPlanetId,
   isFlyingHome = false,
+  isEntering = false,
+  activePlanetId,
   onArrivePlanet,
   onArriveHome,
+  onEntranceComplete,
+  onNearestPlanetChange,
   showHint = true,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
@@ -47,8 +55,8 @@ export function SolarSystem({
     <div className="solar-system">
       <Canvas
         camera={{
-          fov: CAMERA_DEFAULT.fov,
-          position: CAMERA_DEFAULT.position,
+          fov: 60,
+          position: CAMERA_ENTRANCE.position,
         }}
       >
         <color args={["#04060d"]} attach="background" />
@@ -64,7 +72,7 @@ export function SolarSystem({
           speed={0.45}
         />
 
-        <Sun />
+        <Sun onSelect={() => handlePlanetSelect("about")} />
 
         {showOrbitLines
           ? PLANETS.map((planet) => (
@@ -85,10 +93,14 @@ export function SolarSystem({
         ))}
 
         <CameraController
+          activePlanetId={activePlanetId}
           flyToPlanetId={flyToPlanetId}
+          isEntering={isEntering}
           isFlyingHome={isFlyingHome}
           onArriveHome={onArriveHome}
           onArrivePlanet={onArrivePlanet}
+          onEntranceComplete={onEntranceComplete}
+          onNearestPlanetChange={onNearestPlanetChange}
         />
         <PostProcessing />
       </Canvas>

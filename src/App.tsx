@@ -1,4 +1,5 @@
-﻿import "./App.css";
+import { useState } from "react";
+import "./App.css";
 import { Mission } from "./components/Mission";
 import { PlanetDetail } from "./components/PlanetDetail";
 import { SolarSystem } from "./components/SolarSystem";
@@ -9,7 +10,8 @@ import { DataScreen } from "./components/cockpit/DataScreen";
 import { NavScreen } from "./components/cockpit/NavScreen";
 import { StatusBar } from "./components/cockpit/StatusBar";
 import { getMissionForPlanet } from "./data/missions";
-import { PLANETS } from "./data/planets";
+import { getPlanetContent } from "./data/planetContent";
+import { PLANETS, getPlanetById } from "./data/planets";
 import { AppProvider, useAppContext } from "./state/AppState";
 
 function renderDataContent(
@@ -18,6 +20,31 @@ function renderDataContent(
 ) {
   switch (state.view.type) {
     case "SOLAR_SYSTEM": {
+      // If proximity detection found a nearby planet, show preview
+      if (state.nearestPlanetId) {
+        const nearestPlanet = getPlanetById(state.nearestPlanetId);
+        const nearestContent = getPlanetContent(state.nearestPlanetId);
+        return {
+          title: `SCANNING: ${nearestPlanet?.label.toUpperCase() ?? "UNKNOWN"}`,
+          content: (
+            <div className="system-overview proximity-preview">
+              <p>{nearestContent?.summary ?? "Approaching target..."}</p>
+              <button
+                onClick={() =>
+                  dispatch({
+                    type: "FLY_TO_PLANET",
+                    planetId: state.nearestPlanetId!,
+                  })
+                }
+                type="button"
+              >
+                Engage approach vector
+              </button>
+            </div>
+          ),
+        };
+      }
+
       return {
         title: "SYSTEM OVERVIEW",
         content: (
@@ -27,6 +54,16 @@ function renderDataContent(
               inspect chapter details.
             </p>
             <ul>
+              <li key="about">
+                <button
+                  onClick={() =>
+                    dispatch({ type: "FLY_TO_PLANET", planetId: "about" })
+                  }
+                  type="button"
+                >
+                  About Me - The Sun
+                </button>
+              </li>
               {PLANETS.map((planet) => (
                 <li key={planet.id}>
                   <button
@@ -98,13 +135,21 @@ function renderDataContent(
 
 function CockpitExperience() {
   const { state, dispatch } = useAppContext();
+  const [isEntering, setIsEntering] = useState(true);
 
   const activePlanetId =
-    state.view.type === "FLYING_TO_PLANET" ||
-    state.view.type === "PLANET_DETAIL" ||
-    state.view.type === "MISSION"
+    state.view.type === "PLANET_DETAIL" || state.view.type === "MISSION"
       ? state.view.planetId
       : undefined;
+
+  const flyingToPlanetId =
+    state.view.type === "FLYING_TO_PLANET"
+      ? state.view.planetId
+      : undefined;
+
+  // For NavScreen highlighting: show active planet, or nearest detected planet
+  const highlightedPlanetId =
+    flyingToPlanetId ?? activePlanetId ?? state.nearestPlanetId ?? undefined;
 
   const dataScreen = renderDataContent(state, dispatch);
   const companionMode =
@@ -119,17 +164,22 @@ function CockpitExperience() {
       audioEnabled={state.audioEnabled}
       canvas={
         <SolarSystem
-          flyToPlanetId={
-            state.view.type === "FLYING_TO_PLANET"
-              ? state.view.planetId
-              : undefined
-          }
+          activePlanetId={activePlanetId}
+          flyToPlanetId={flyingToPlanetId}
+          isEntering={isEntering}
           isFlyingHome={state.view.type === "FLYING_HOME"}
           onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
           onArrivePlanet={(planetId) =>
             dispatch({ type: "ARRIVE_AT_PLANET", planetId })
           }
+          onEntranceComplete={() => setIsEntering(false)}
+          onNearestPlanetChange={(planetId) =>
+            dispatch({ type: "SET_NEAREST_PLANET", planetId })
+          }
           onPlanetSelect={(planetId) => {
+            if (isEntering) {
+              return;
+            }
             if (
               state.view.type === "FLYING_TO_PLANET" ||
               state.view.type === "FLYING_HOME"
@@ -147,7 +197,7 @@ function CockpitExperience() {
       screens={{
         nav: (
           <NavScreen
-            activePlanetId={activePlanetId}
+            activePlanetId={highlightedPlanetId}
             onFlyHome={
               state.view.type === "PLANET_DETAIL" ||
               state.view.type === "MISSION"
@@ -163,7 +213,7 @@ function CockpitExperience() {
         ),
         data: (
           <DataScreen
-            contentKey={`${state.view.type}:${activePlanetId ?? "none"}`}
+            contentKey={`${state.view.type}:${activePlanetId ?? state.nearestPlanetId ?? "none"}`}
             onBack={
               state.view.type === "MISSION"
                 ? () => dispatch({ type: "EXIT_MISSION" })
@@ -179,7 +229,7 @@ function CockpitExperience() {
         companion: <CompanionScreen mode={companionMode} />,
         status: (
           <StatusBar
-            totalPlanets={PLANETS.length}
+            totalPlanets={PLANETS.length + 1}
             view={state.view}
             visitedCount={state.visitedPlanets.size}
           />

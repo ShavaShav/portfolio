@@ -22,7 +22,9 @@ export function MiniSystemMap({
           className="mini-system-map__sun"
           cx={MAP_CENTER}
           cy={MAP_CENTER}
+          onClick={() => onSelectPlanet("about")}
           r={5}
+          style={{ cursor: "pointer" }}
         />
 
         {PLANETS.map((planet) => (
