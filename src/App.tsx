@@ -189,6 +189,7 @@ function CockpitExperience() {
 
             dispatch({ type: "FLY_TO_PLANET", planetId });
           }}
+          companionActive={companionMode !== "standby"}
           showHint={false}
           showOrbitLines={state.view.type === "SOLAR_SYSTEM"}
         />
@@ -226,7 +227,17 @@ function CockpitExperience() {
             {dataScreen.content}
           </DataScreen>
         ),
-        companion: <CompanionScreen mode={companionMode} />,
+        companion: (
+          <CompanionScreen
+            mode={companionMode}
+            missionId={
+              state.view.type === "MISSION"
+                ? state.view.missionId
+                : undefined
+            }
+            planetId={activePlanetId}
+          />
+        ),
         status: (
           <StatusBar
             totalPlanets={PLANETS.length + 1}

@@ -4,6 +4,7 @@ import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
 import { CameraController } from "./three/CameraController";
+import { CompanionOrb } from "./three/CompanionOrb";
 import { OrbitLine } from "./three/OrbitLine";
 import { Planet } from "./three/Planet";
 import { PostProcessing } from "./three/PostProcessing";
@@ -23,6 +24,8 @@ type SolarSystemProps = {
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
   showHint?: boolean;
+  companionActive?: boolean;
+  companionResponding?: boolean;
 };
 
 export function SolarSystem({
@@ -38,6 +41,8 @@ export function SolarSystem({
   onEntranceComplete,
   onNearestPlanetChange,
   showHint = true,
+  companionActive = false,
+  companionResponding = false,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -91,6 +96,11 @@ export function SolarSystem({
             planet={planet}
           />
         ))}
+
+        <CompanionOrb
+          active={companionActive}
+          isResponding={companionResponding}
+        />
 
         <CameraController
           activePlanetId={activePlanetId}
