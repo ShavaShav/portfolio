@@ -193,6 +193,7 @@ function CockpitExperience() {
       isEntering={isEntering}
       isFlyingHome={state.view.type === "FLYING_HOME"}
       onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
+      onLeaveOrbit={() => dispatch({ type: "ARRIVE_HOME" })}
       onArrivePlanet={(planetId) =>
         dispatch({ type: "ARRIVE_AT_PLANET", planetId })
       }

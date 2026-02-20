@@ -23,6 +23,7 @@ type SolarSystemProps = {
   activePlanetId?: string;
   onArrivePlanet?: (planetId: string) => void;
   onArriveHome?: () => void;
+  onLeaveOrbit?: () => void;
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
   showHint?: boolean;
@@ -44,6 +45,7 @@ export function SolarSystem({
   activePlanetId,
   onArrivePlanet,
   onArriveHome,
+  onLeaveOrbit,
   onEntranceComplete,
   onNearestPlanetChange,
   showHint = true,
@@ -125,6 +127,7 @@ export function SolarSystem({
           isFlyingHome={isFlyingHome}
           onArriveHome={onArriveHome}
           onArrivePlanet={onArrivePlanet}
+          onLeaveOrbit={onLeaveOrbit}
           onEntranceComplete={onEntranceComplete}
           onNearestPlanetChange={onNearestPlanetChange}
         />

@@ -19,6 +19,7 @@ type CameraControllerProps = {
   activePlanetId?: string;
   onArrivePlanet?: (planetId: string) => void;
   onArriveHome?: () => void;
+  onLeaveOrbit?: () => void; // fired on canvas click-off or fly-away (no tween)
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
 };
@@ -49,6 +50,7 @@ export function CameraController({
   activePlanetId,
   onArrivePlanet,
   onArriveHome,
+  onLeaveOrbit,
   onEntranceComplete,
   onNearestPlanetChange,
 }: CameraControllerProps) {
@@ -72,6 +74,19 @@ export function CameraController({
   // Track the fly-to planet and progress for smooth tracking during flight
   const flyingPlanetRef = useRef<string | null>(null);
   const flyProgressRef = useRef(0);
+
+  // Sync free-flight angles from current camera quaternion
+  const syncAnglesFromCamera = useCallback(() => {
+    _euler.setFromQuaternion(camera.quaternion, "YXZ");
+    yawRef.current = _euler.y;
+    pitchRef.current = _euler.x;
+    rollRef.current = _euler.z;
+  }, [camera]);
+
+  // Clear all held keys (prevents stuck-key drift after state transitions)
+  const clearKeys = useCallback(() => {
+    keysRef.current.clear();
+  }, []);
 
   // --- Pointer lock management ---
   const requestPointerLock = useCallback(() => {
@@ -99,14 +114,44 @@ export function CameraController({
       );
     };
 
+    // Click-off while in planet orbit: exit orbit without teleporting
+    const onCanvasClick = (_e: MouseEvent) => {
+      // Only fire when we have an active planet and no ongoing tween
+      if (!activePlanetId) return;
+      if (flyToPlanetId || isFlyingHome || isEntering) return;
+      // Ignore if this click targeted a Three.js interactive object —
+      // those dispatch their own events before this handler fires, but
+      // there is no reliable way to detect that here. We rely on the
+      // fact that planet/sun click → FLY_TO_PLANET which changes
+      // activePlanetId, so the transition will be handled by fly-to.
+      // A click on empty space stays in PLANET_DETAIL, so we exit orbit.
+      // Small delay so R3F's raycasting can resolve first.
+      setTimeout(() => {
+        // If activePlanetId is still set after the click (no fly-to was triggered)
+        // it means the user clicked off the planet mesh.
+        // We check via the ref captured in the closure.
+        if (activePlanetIdRef.current) {
+          onLeaveOrbit?.();
+        }
+      }, 0);
+    };
+
     document.addEventListener("pointerlockchange", onLockChange);
     canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("click", onCanvasClick);
 
     return () => {
       document.removeEventListener("pointerlockchange", onLockChange);
       canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("click", onCanvasClick);
     };
-  }, [gl, activePlanetId, flyToPlanetId, isFlyingHome, isEntering]);
+  }, [gl, activePlanetId, flyToPlanetId, isFlyingHome, isEntering, onLeaveOrbit]);
+
+  // Keep a ref of activePlanetId for use in async callbacks
+  const activePlanetIdRef = useRef(activePlanetId);
+  useEffect(() => {
+    activePlanetIdRef.current = activePlanetId;
+  }, [activePlanetId]);
 
   // Release pointer lock when entering planet view or fly-to
   useEffect(() => {
@@ -114,8 +159,10 @@ export function CameraController({
       if (document.pointerLockElement) {
         document.exitPointerLock();
       }
+      // Also clear any held keys to prevent stuck-key drift
+      clearKeys();
     }
-  }, [activePlanetId, flyToPlanetId, isFlyingHome, isEntering]);
+  }, [activePlanetId, flyToPlanetId, isFlyingHome, isEntering, clearKeys]);
 
   // Keyboard event handlers
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -141,24 +188,31 @@ export function CameraController({
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    // Clear keys on window blur (tab switch, alt-tab, etc.)
+    window.addEventListener("blur", clearKeys);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", clearKeys);
     };
-  }, [handleKeyDown, handleKeyUp]);
+  }, [handleKeyDown, handleKeyUp, clearKeys]);
 
-  // Initialize yaw/pitch from current camera orientation when entering free-flight
+  // When transitioning from planet orbit to free-flight (via onLeaveOrbit),
+  // sync angles from the current camera orientation so there is no jump.
   const prevActivePlanetRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    // When we transition from planet view back to free-flight, sync angles
     if (!activePlanetId && prevActivePlanetRef.current) {
-      _euler.setFromQuaternion(camera.quaternion, "YXZ");
-      yawRef.current = _euler.y;
-      pitchRef.current = _euler.x;
-      rollRef.current = _euler.z;
+      syncAnglesFromCamera();
+      // Sync OrbitControls target too
+      const controls = controlsRef.current;
+      if (controls) {
+        camera.getWorldDirection(_forward);
+        controls.target.copy(camera.position).addScaledVector(_forward, 5);
+        controls.update();
+      }
     }
     prevActivePlanetRef.current = activePlanetId;
-  }, [activePlanetId, camera]);
+  }, [activePlanetId, syncAnglesFromCamera, camera]);
 
   useEffect(() => {
     return () => {
@@ -203,15 +257,11 @@ export function CameraController({
       onComplete: () => {
         controls.enabled = true;
         activeTweenRef.current = null;
-        // Sync angles after entrance
-        _euler.setFromQuaternion(camera.quaternion, "YXZ");
-        yawRef.current = _euler.y;
-        pitchRef.current = _euler.x;
-        rollRef.current = _euler.z;
+        syncAnglesFromCamera();
         onEntranceComplete?.();
       },
     });
-  }, [isEntering, camera, onEntranceComplete]);
+  }, [isEntering, camera, onEntranceComplete, syncAnglesFromCamera]);
 
   // Fly-to-planet and fly-home animations
   useEffect(() => {
@@ -341,6 +391,8 @@ export function CameraController({
       return;
     }
 
+    // FLY_HOME (triggered by "Return to overview" button):
+    // GSAP tween back to the default system-overview position.
     if (isFlyingHome) {
       if (activeFlightRef.current === "home") {
         return;
@@ -376,11 +428,7 @@ export function CameraController({
         onComplete: () => {
           controls.enabled = true;
           activeTweenRef.current = null;
-          // Sync angles when returning home
-          _euler.setFromQuaternion(camera.quaternion, "YXZ");
-          yawRef.current = _euler.y;
-          pitchRef.current = _euler.x;
-          rollRef.current = _euler.z;
+          syncAnglesFromCamera();
           onArriveHome?.();
         },
       });
@@ -398,6 +446,7 @@ export function CameraController({
     isFlyingHome,
     onArriveHome,
     onArrivePlanet,
+    syncAnglesFromCamera,
   ]);
 
   // useFrame: space-shooter controls in free-flight, orbit controls in planet view
@@ -517,15 +566,14 @@ export function CameraController({
         onNearestPlanetChange?.(closestId);
       }
 
-      // Keep OrbitControls target in sync with camera position so
-      // the planet-orbit transition starts from the right place
+      // Keep OrbitControls target in sync so planet-orbit transition
+      // starts from the right place
+      camera.getWorldDirection(_cameraDir);
       controls.target.copy(camera.position).addScaledVector(_cameraDir, 5);
       controls.update();
     }
   });
 
-  // OrbitControls is used only in planet-orbit view and during GSAP tweens
-  // In free-flight, we drive the camera directly and keep controls in sync
   return (
     <OrbitControls
       ref={controlsRef}
