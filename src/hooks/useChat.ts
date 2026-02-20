@@ -5,6 +5,16 @@ export type ChatMessage = {
   content: string;
 };
 
+export type CompanionContext = {
+  /** Companion identity / situational awareness passed to the API */
+  mode: "standby" | "active" | "copilot";
+  currentPlanetId?: string;
+  currentPlanetLabel?: string;
+  visitedPlanetLabels: string[];
+  missionTitle?: string;
+  scenarioContext?: string;
+};
+
 const API_URL =
   import.meta.env.VITE_API_URL || "https://portfolio-api.vercel.app";
 
@@ -13,18 +23,18 @@ export function useChat(sessionId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const lastUserMessageRef = useRef<string>("");
-  const lastScenarioRef = useRef<string | undefined>(undefined);
+  const lastContextRef = useRef<CompanionContext | undefined>(undefined);
 
   const addMessage = useCallback((msg: ChatMessage) => {
     setMessages((prev) => [...prev, msg]);
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, scenarioContext?: string) => {
+    async (text: string, context?: CompanionContext) => {
       if (!text.trim() || isLoading) return;
 
       lastUserMessageRef.current = text;
-      lastScenarioRef.current = scenarioContext;
+      lastContextRef.current = context;
 
       const userMsg: ChatMessage = { role: "user", content: text };
       setMessages((prev) => [...prev, userMsg]);
@@ -41,7 +51,7 @@ export function useChat(sessionId: string) {
           body: JSON.stringify({
             message: text,
             sessionId,
-            scenarioContext,
+            companionContext: context,
           }),
           signal: controller.signal,
         });
@@ -115,7 +125,7 @@ export function useChat(sessionId: string) {
         }
         return prev;
       });
-      sendMessage(lastUserMessageRef.current, lastScenarioRef.current);
+      sendMessage(lastUserMessageRef.current, lastContextRef.current);
     }
   }, [sendMessage]);
 

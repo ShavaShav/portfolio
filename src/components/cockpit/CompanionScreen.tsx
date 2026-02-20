@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useChat, type ChatMessage } from "../../hooks/useChat";
+import { useChat, type ChatMessage, type CompanionContext } from "../../hooks/useChat";
 import { getPlanetById } from "../../data/planets";
 import { getMissionForPlanet } from "../../data/missions";
 import { useAppState } from "../../state/AppState";
@@ -16,7 +16,7 @@ export function CompanionScreen({
   planetId,
   missionId,
 }: CompanionScreenProps) {
-  const { chatSessionId } = useAppState();
+  const { chatSessionId, visitedPlanets } = useAppState();
   const { messages, sendMessage, addMessage, isLoading, retry } =
     useChat(chatSessionId);
   const [inputValue, setInputValue] = useState("");
@@ -60,19 +60,33 @@ export function CompanionScreen({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  function buildContext(): CompanionContext {
+    const planet = planetId ? getPlanetById(planetId) : undefined;
+    const mission =
+      missionId && planetId ? getMissionForPlanet(planetId) : undefined;
+
+    const visitedLabels = Array.from(visitedPlanets)
+      .map((id) => {
+        if (id === "about") return "The Sun (About Me)";
+        return getPlanetById(id)?.label ?? id;
+      });
+
+    return {
+      mode,
+      currentPlanetId: planetId,
+      currentPlanetLabel: planet?.label ?? (planetId === "about" ? "The Sun (About Me)" : undefined),
+      visitedPlanetLabels: visitedLabels,
+      missionTitle: mission?.title,
+      scenarioContext: mission?.scenario ?? mission?.title,
+    };
+  }
+
   function handleSend() {
     const text = inputValue.trim();
     if (!text || isLoading) return;
 
     setInputValue("");
-
-    let scenarioContext: string | undefined;
-    if (mode === "copilot" && planetId) {
-      const mission = missionId ? getMissionForPlanet(planetId) : undefined;
-      scenarioContext = mission?.scenario ?? mission?.title;
-    }
-
-    sendMessage(text, scenarioContext);
+    sendMessage(text, buildContext());
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
