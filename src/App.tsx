@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
+import { audioManager } from "./audio/AudioManager";
 import { Mission } from "./components/Mission";
 import { PlanetDetail } from "./components/PlanetDetail";
 import { SolarSystem } from "./components/SolarSystem";
@@ -137,6 +138,13 @@ function CockpitExperience() {
   const { state, dispatch } = useAppContext();
   const [isEntering, setIsEntering] = useState(true);
 
+  // Play whoosh when a fly-to starts
+  useEffect(() => {
+    if (state.view.type === "FLYING_TO_PLANET" || state.view.type === "FLYING_HOME") {
+      audioManager.playTransition();
+    }
+  }, [state.view.type]);
+
   const activePlanetId =
     state.view.type === "PLANET_DETAIL" || state.view.type === "MISSION"
       ? state.view.planetId
@@ -187,6 +195,7 @@ function CockpitExperience() {
               return;
             }
 
+            audioManager.playClick();
             dispatch({ type: "FLY_TO_PLANET", planetId });
           }}
           companionActive={companionMode !== "standby"}
@@ -194,7 +203,10 @@ function CockpitExperience() {
           showOrbitLines={state.view.type === "SOLAR_SYSTEM"}
         />
       }
-      onToggleAudio={() => dispatch({ type: "TOGGLE_AUDIO" })}
+      onToggleAudio={() => {
+          dispatch({ type: "TOGGLE_AUDIO" });
+          audioManager.setEnabled(!state.audioEnabled);
+        }}
       screens={{
         nav: (
           <NavScreen

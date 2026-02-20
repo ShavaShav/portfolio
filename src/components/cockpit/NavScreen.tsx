@@ -1,4 +1,5 @@
-﻿import { PLANETS } from "../../data/planets";
+﻿import { audioManager } from "../../audio/AudioManager";
+import { PLANETS } from "../../data/planets";
 import type { AppView } from "../../state/AppState";
 import { CockpitScreen } from "./CockpitScreen";
 import { MiniSystemMap } from "./MiniSystemMap";
@@ -29,7 +30,7 @@ export function NavScreen({
       <div className="nav-screen__list">
         <button
           className={`nav-screen__planet nav-screen__planet--sun ${activePlanetId === "about" ? "is-active" : ""}`}
-          onClick={() => onSelectPlanet("about")}
+          onClick={() => { audioManager.playClick(); onSelectPlanet("about"); }}
           type="button"
         >
           <span>About Me</span>
@@ -39,7 +40,7 @@ export function NavScreen({
           <button
             className={`nav-screen__planet ${planet.id === activePlanetId ? "is-active" : ""}`}
             key={planet.id}
-            onClick={() => onSelectPlanet(planet.id)}
+            onClick={() => { audioManager.playClick(); onSelectPlanet(planet.id); }}
             type="button"
           >
             <span>{planet.label}</span>
@@ -51,7 +52,7 @@ export function NavScreen({
       {viewType !== "SOLAR_SYSTEM" && onFlyHome ? (
         <button
           className="nav-screen__return"
-          onClick={onFlyHome}
+          onClick={() => { audioManager.playClick(); onFlyHome(); }}
           type="button"
         >
           {"<- Return To Overview"}

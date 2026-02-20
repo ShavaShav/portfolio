@@ -1,4 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { audioManager } from "../audio/AudioManager";
 import {
   TERMINAL_INTRO_LINES,
   TERMINAL_LAUNCH_LINES,
@@ -98,6 +99,7 @@ export function Terminal({ onLaunch }: TerminalProps) {
     }
 
     setIsLaunching(true);
+    audioManager.playLaunch();
 
     for (const line of TERMINAL_LAUNCH_LINES) {
       await typeLine(line);
@@ -197,6 +199,11 @@ export function Terminal({ onLaunch }: TerminalProps) {
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
+      // Play keystroke sound for printable characters and backspace
+      if (event.key.length === 1 || event.key === "Backspace") {
+        audioManager.playType();
+      }
+
       if (event.key !== "Enter") {
         return;
       }
