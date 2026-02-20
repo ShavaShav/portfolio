@@ -201,6 +201,7 @@ function CockpitExperience() {
           companionActive={companionMode !== "standby"}
           showHint={false}
           showOrbitLines={state.view.type === "SOLAR_SYSTEM"}
+          visitedPlanets={state.visitedPlanets}
         />
       }
       onToggleAudio={() => {

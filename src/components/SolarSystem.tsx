@@ -3,7 +3,9 @@ import { useCallback } from "react";
 import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
+import { AmbientParticles } from "./three/AmbientParticles";
 import { CameraController } from "./three/CameraController";
+import { CometSystem } from "./three/CometSystem";
 import { CompanionOrb } from "./three/CompanionOrb";
 import { OrbitLine } from "./three/OrbitLine";
 import { Planet } from "./three/Planet";
@@ -26,6 +28,9 @@ type SolarSystemProps = {
   showHint?: boolean;
   companionActive?: boolean;
   companionResponding?: boolean;
+  reducedQuality?: boolean;
+  particleCount?: number;
+  visitedPlanets?: Set<string>;
 };
 
 export function SolarSystem({
@@ -43,6 +48,9 @@ export function SolarSystem({
   showHint = true,
   companionActive = false,
   companionResponding = false,
+  reducedQuality = false,
+  particleCount = 200,
+  visitedPlanets,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -94,6 +102,7 @@ export function SolarSystem({
             key={planet.id}
             onSelect={handlePlanetSelect}
             planet={planet}
+            visited={visitedPlanets?.has(planet.id) ?? false}
           />
         ))}
 
@@ -101,6 +110,9 @@ export function SolarSystem({
           active={companionActive}
           isResponding={companionResponding}
         />
+
+        <CometSystem />
+        <AmbientParticles count={particleCount} />
 
         <CameraController
           activePlanetId={activePlanetId}
@@ -112,7 +124,7 @@ export function SolarSystem({
           onEntranceComplete={onEntranceComplete}
           onNearestPlanetChange={onNearestPlanetChange}
         />
-        <PostProcessing />
+        <PostProcessing reducedQuality={reducedQuality} />
       </Canvas>
 
       {showHint ? (

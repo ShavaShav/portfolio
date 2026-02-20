@@ -70,6 +70,25 @@
   gap: 10px;
 }
 
+.cockpit-frame__boot-status {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #00ff88;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  animation: boot-flicker 0.42s ease;
+  pointer-events: none;
+}
+
+@keyframes boot-flicker {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+
 .audio-toggle {
   border: 1px solid rgba(0, 255, 136, 0.35);
   background: rgba(0, 255, 136, 0.1);
@@ -185,6 +204,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
+  overflow: hidden;
   background: repeating-linear-gradient(
     to bottom,
     rgba(255, 255, 255, 0.03) 0,
@@ -193,6 +213,28 @@
     transparent 3px
   );
   opacity: 0.15;
+}
+
+/* Moving scan-line sweep on powered screens */
+.cockpit-screen.is-powered .cockpit-screen__scanline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 255, 136, 0.06),
+    transparent
+  );
+  animation: scanline-sweep 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanline-sweep {
+  from { top: -60px; }
+  to   { top: 100%; }
 }
 
 .mini-system-map {

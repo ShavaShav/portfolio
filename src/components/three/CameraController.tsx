@@ -4,6 +4,7 @@ import gsap from "gsap";
 import { useCallback, useEffect, useRef } from "react";
 import { Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { useIdleState } from "../../hooks/useIdleTimer";
 import { CAMERA_DEFAULT } from "../../data/cameraPositions";
 import {
   PLANETS,
@@ -51,6 +52,9 @@ export function CameraController({
   const activeFlightRef = useRef<string | null>(null);
   const hasEnteredRef = useRef(false);
   const nearestRef = useRef<string | null>(null);
+
+  // Track idle state for auto-rotate
+  const isIdle = useIdleState(30_000);
 
   // Track which keys are currently held for WASD flight
   const keysRef = useRef<Set<string>>(new Set());
@@ -415,6 +419,17 @@ export function CameraController({
           controls.target.z += dz;
         }
       }
+    }
+
+    // --- Idle auto-rotate (solar system free-flight only) ---
+    if (isIdle && !activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
+      const autoRotateSpeed = 0.0008;
+      const angle = autoRotateSpeed;
+      const cx = camera.position.x;
+      const cz = camera.position.z;
+      camera.position.x = cx * Math.cos(angle) - cz * Math.sin(angle);
+      camera.position.z = cx * Math.sin(angle) + cz * Math.cos(angle);
+      controls.update();
     }
 
     // --- Proximity detection (SOLAR_SYSTEM state only) ---

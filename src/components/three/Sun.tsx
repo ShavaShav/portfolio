@@ -1,7 +1,9 @@
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ShaderMaterial } from "three";
 import type { Mesh } from "three";
+import { sunFragmentShader, sunVertexShader } from "../../shaders/sun";
 
 type SunProps = {
   onSelect?: () => void;
@@ -11,6 +13,18 @@ export function Sun({ onSelect }: SunProps) {
   const coreRef = useRef<Mesh>(null);
   const glowRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  const shaderMaterial = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: sunVertexShader,
+        fragmentShader: sunFragmentShader,
+        uniforms: {
+          uTime: { value: 0 },
+        },
+      }),
+    [],
+  );
 
   useEffect(() => {
     document.body.style.cursor = isHovered ? "pointer" : "default";
@@ -23,6 +37,9 @@ export function Sun({ onSelect }: SunProps) {
   useFrame(({ clock }, delta) => {
     const elapsed = clock.getElapsedTime();
     const pulse = 1 + Math.sin(elapsed * 0.5) * 0.02;
+
+    // Update shader time uniform
+    shaderMaterial.uniforms.uTime.value = elapsed;
 
     if (coreRef.current) {
       coreRef.current.rotation.y += delta * 0.05;
@@ -37,6 +54,7 @@ export function Sun({ onSelect }: SunProps) {
   return (
     <group>
       <mesh
+        material={shaderMaterial}
         onClick={(event) => {
           event.stopPropagation();
           onSelect?.();
@@ -52,18 +70,16 @@ export function Sun({ onSelect }: SunProps) {
         ref={coreRef}
       >
         <sphereGeometry args={[1.5, 64, 64]} />
-        <meshStandardMaterial
-          color="#ff9900"
-          emissive="#ff5500"
-          emissiveIntensity={isHovered ? 2.2 : 1.7}
-          metalness={0.05}
-          roughness={0.35}
-        />
       </mesh>
 
+      {/* Corona glow layer */}
       <mesh ref={glowRef}>
         <sphereGeometry args={[1.95, 32, 32]} />
-        <meshBasicMaterial color="#ffbb55" opacity={0.18} transparent />
+        <meshBasicMaterial
+          color={isHovered ? "#ffcc66" : "#ffbb55"}
+          opacity={isHovered ? 0.25 : 0.18}
+          transparent
+        />
       </mesh>
 
       <Html center distanceFactor={10} position={[0, 2.2, 0]}>

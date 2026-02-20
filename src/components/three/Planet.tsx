@@ -8,9 +8,10 @@ import { getPlanetPositionAtTime, type PlanetConfig } from "../../data/planets";
 type PlanetProps = {
   planet: PlanetConfig;
   onSelect: (planetId: string) => void;
+  visited?: boolean;
 };
 
-export function Planet({ planet, onSelect }: PlanetProps) {
+export function Planet({ planet, onSelect, visited = false }: PlanetProps) {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -79,6 +80,19 @@ export function Planet({ planet, onSelect }: PlanetProps) {
             transparent
           />
         </Ring>
+      ) : null}
+
+      {/* Visited glow ring */}
+      {visited ? (
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[planet.radius * 1.55, planet.radius * 1.65, 48]} />
+          <meshBasicMaterial
+            color={planet.color}
+            opacity={0.35}
+            transparent
+            depthWrite={false}
+          />
+        </mesh>
       ) : null}
 
       <Html center distanceFactor={10} position={[0, planet.radius + 0.6, 0]}>
