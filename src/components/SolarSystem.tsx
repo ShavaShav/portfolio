@@ -26,6 +26,7 @@ type SolarSystemProps = {
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
   showHint?: boolean;
+  showFlightHUD?: boolean;
   companionActive?: boolean;
   companionResponding?: boolean;
   reducedQuality?: boolean;
@@ -46,12 +47,15 @@ export function SolarSystem({
   onEntranceComplete,
   onNearestPlanetChange,
   showHint = true,
+  showFlightHUD = false,
   companionActive = false,
   companionResponding = false,
   reducedQuality = false,
   particleCount = 200,
   visitedPlanets,
 }: SolarSystemProps) {
+  const isFreeFlight = showFlightHUD && !activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering;
+
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
       if (onPlanetSelect) {
@@ -130,6 +134,26 @@ export function SolarSystem({
       {showHint ? (
         <div className="solar-system__hint">
           Click a planet to initiate fly-to.
+        </div>
+      ) : null}
+
+      {/* Crosshair: shown in free-flight mode */}
+      {isFreeFlight ? (
+        <div className="solar-system__crosshair" aria-hidden="true">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="14" cy="14" r="5" stroke="#00ff88" strokeWidth="1" />
+            <line x1="14" y1="0" x2="14" y2="8" stroke="#00ff88" strokeWidth="1" />
+            <line x1="14" y1="20" x2="14" y2="28" stroke="#00ff88" strokeWidth="1" />
+            <line x1="0" y1="14" x2="8" y2="14" stroke="#00ff88" strokeWidth="1" />
+            <line x1="20" y1="14" x2="28" y2="14" stroke="#00ff88" strokeWidth="1" />
+          </svg>
+        </div>
+      ) : null}
+
+      {/* Pointer-lock hint: shown in free-flight before user clicks */}
+      {isFreeFlight ? (
+        <div className="solar-system__lock-hint" aria-hidden="true">
+          F = MOUSE AIM · W/S = THRUST · A/D = ROLL · CLICK = FLY TO PLANET
         </div>
       ) : null}
     </div>

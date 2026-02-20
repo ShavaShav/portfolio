@@ -203,6 +203,7 @@ function CockpitExperience() {
       onPlanetSelect={handlePlanetSelect}
       companionActive={companionMode !== "standby"}
       showHint={false}
+      showFlightHUD={!isMobile}
       showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
       visitedPlanets={state.visitedPlanets}
       starCount={isLowQuality ? 500 : isMobile ? 1500 : 5000}

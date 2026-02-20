@@ -2,7 +2,7 @@ import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import gsap from "gsap";
 import { useCallback, useEffect, useRef } from "react";
-import { Vector3 } from "three";
+import { Euler, MathUtils, Quaternion, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { useIdleState } from "../../hooks/useIdleTimer";
 import { CAMERA_DEFAULT } from "../../data/cameraPositions";
@@ -28,13 +28,19 @@ const _cameraDir = new Vector3();
 const _toPlanet = new Vector3();
 const _offset = new Vector3();
 const _planetPos = new Vector3();
-const _moveDir = new Vector3();
-const _sideDir = new Vector3();
+const _forward = new Vector3();
+const _quat = new Quaternion();
+const _euler = new Euler(0, 0, 0, "YXZ");
 
 const PROXIMITY_BASE_THRESHOLD = 6;
 const AIM_THRESHOLD = 0.85;
 const HYSTERESIS_MULTIPLIER = 1.5;
-const WASD_SPEED = 0.15;
+
+// Space-shooter flight params
+const THRUST_SPEED = 0.12;
+const ROLL_SPEED = 0.022;
+const MOUSE_SENSITIVITY = 0.0018;
+const PITCH_LIMIT = Math.PI * 0.45; // ~81°
 
 export function CameraController({
   flyToPlanetId,
@@ -46,7 +52,7 @@ export function CameraController({
   onEntranceComplete,
   onNearestPlanetChange,
 }: CameraControllerProps) {
-  const { camera, clock } = useThree();
+  const { camera, gl, clock } = useThree();
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const activeTweenRef = useRef<gsap.core.Tween | null>(null);
   const activeFlightRef = useRef<string | null>(null);
@@ -56,20 +62,76 @@ export function CameraController({
   // Track idle state for auto-rotate
   const isIdle = useIdleState(30_000);
 
-  // Track which keys are currently held for WASD flight
+  // Space-shooter state
   const keysRef = useRef<Set<string>>(new Set());
+  const yawRef = useRef(0);   // radians, accumulated from mouse X
+  const pitchRef = useRef(0); // radians, accumulated from mouse Y
+  const rollRef = useRef(0);  // radians, accumulated from A/D
+  const pointerLockedRef = useRef(false);
 
   // Track the fly-to planet and progress for smooth tracking during flight
   const flyingPlanetRef = useRef<string | null>(null);
   const flyProgressRef = useRef(0);
 
-  // Keyboard event handlers for WASD flight
+  // --- Pointer lock management ---
+  const requestPointerLock = useCallback(() => {
+    if (!pointerLockedRef.current) {
+      gl.domElement.requestPointerLock();
+    }
+  }, [gl]);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const onLockChange = () => {
+      pointerLockedRef.current = document.pointerLockElement === canvas;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!pointerLockedRef.current) return;
+      if (activePlanetId || flyToPlanetId || isFlyingHome || isEntering) return;
+
+      yawRef.current -= e.movementX * MOUSE_SENSITIVITY;
+      pitchRef.current = MathUtils.clamp(
+        pitchRef.current - e.movementY * MOUSE_SENSITIVITY,
+        -PITCH_LIMIT,
+        PITCH_LIMIT,
+      );
+    };
+
+    document.addEventListener("pointerlockchange", onLockChange);
+    canvas.addEventListener("mousemove", onMouseMove);
+
+    return () => {
+      document.removeEventListener("pointerlockchange", onLockChange);
+      canvas.removeEventListener("mousemove", onMouseMove);
+    };
+  }, [gl, activePlanetId, flyToPlanetId, isFlyingHome, isEntering]);
+
+  // Release pointer lock when entering planet view or fly-to
+  useEffect(() => {
+    if (activePlanetId || flyToPlanetId || isFlyingHome || isEntering) {
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    }
+  }, [activePlanetId, flyToPlanetId, isFlyingHome, isEntering]);
+
+  // Keyboard event handlers
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const key = event.key.toLowerCase();
-    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
+    if (["w", "a", "s", "d"].includes(key)) {
       keysRef.current.add(key);
     }
-  }, []);
+    // F toggles mouse-look (pointer lock); Escape is handled by the browser automatically
+    if (key === "f" && !activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering) {
+      if (pointerLockedRef.current) {
+        document.exitPointerLock();
+      } else {
+        requestPointerLock();
+      }
+    }
+  }, [activePlanetId, flyToPlanetId, isFlyingHome, isEntering, requestPointerLock]);
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     const key = event.key.toLowerCase();
@@ -84,6 +146,19 @@ export function CameraController({
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, [handleKeyDown, handleKeyUp]);
+
+  // Initialize yaw/pitch from current camera orientation when entering free-flight
+  const prevActivePlanetRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    // When we transition from planet view back to free-flight, sync angles
+    if (!activePlanetId && prevActivePlanetRef.current) {
+      _euler.setFromQuaternion(camera.quaternion, "YXZ");
+      yawRef.current = _euler.y;
+      pitchRef.current = _euler.x;
+      rollRef.current = _euler.z;
+    }
+    prevActivePlanetRef.current = activePlanetId;
+  }, [activePlanetId, camera]);
 
   useEffect(() => {
     return () => {
@@ -128,6 +203,11 @@ export function CameraController({
       onComplete: () => {
         controls.enabled = true;
         activeTweenRef.current = null;
+        // Sync angles after entrance
+        _euler.setFromQuaternion(camera.quaternion, "YXZ");
+        yawRef.current = _euler.y;
+        pitchRef.current = _euler.x;
+        rollRef.current = _euler.z;
         onEntranceComplete?.();
       },
     });
@@ -190,7 +270,6 @@ export function CameraController({
       }
 
       // Flying to an orbiting planet: animate a progress value 0→1
-      // and compute position from the planet's LIVE position each frame
       const flightId = `planet:${flyToPlanetId}`;
       if (activeFlightRef.current === flightId) {
         return;
@@ -202,7 +281,6 @@ export function CameraController({
       activeTweenRef.current?.kill();
       controls.enabled = false;
 
-      // Capture starting position
       const startPos = {
         x: camera.position.x,
         y: camera.position.y,
@@ -224,13 +302,11 @@ export function CameraController({
           flyProgressRef.current = progressObj.t;
           const t = progressObj.t;
 
-          // Get planet's CURRENT position (tracks moving planet)
           const planet = getPlanetById(flyToPlanetId);
           if (!planet) return;
           const elapsed = clock.getElapsedTime();
           const pos = getPlanetPositionAtTime(planet, elapsed);
 
-          // Compute camera offset from planet center
           const dist = Math.hypot(pos.x, pos.y, pos.z);
           const safeDist = dist === 0 ? 1 : dist;
           const closeDistance = planet.radius * 3;
@@ -242,7 +318,6 @@ export function CameraController({
             z: pos.z + pos.z * scale,
           };
 
-          // Lerp from start to end based on progress
           camera.position.set(
             startPos.x + (endPos.x - startPos.x) * t,
             startPos.y + (endPos.y - startPos.y) * t,
@@ -301,6 +376,11 @@ export function CameraController({
         onComplete: () => {
           controls.enabled = true;
           activeTweenRef.current = null;
+          // Sync angles when returning home
+          _euler.setFromQuaternion(camera.quaternion, "YXZ");
+          yawRef.current = _euler.y;
+          pitchRef.current = _euler.x;
+          rollRef.current = _euler.z;
           onArriveHome?.();
         },
       });
@@ -320,126 +400,81 @@ export function CameraController({
     onArrivePlanet,
   ]);
 
-  // useFrame: dynamic constraints, planet tracking, WASD flight, proximity detection
+  // useFrame: space-shooter controls in free-flight, orbit controls in planet view
   useFrame(() => {
     const controls = controlsRef.current;
-    if (!controls) {
-      return;
-    }
+    if (!controls) return;
 
     const elapsed = clock.getElapsedTime();
 
-    // --- Dynamic OrbitControls constraints ---
+    // --- Planet orbit mode (OrbitControls handles everything) ---
     if (activePlanetId) {
       const planet = getPlanetById(activePlanetId);
       if (planet) {
         controls.minDistance = planet.radius * 1.8;
         controls.maxDistance = planet.radius * 8;
       }
-      // Allow full 360° orbit around planet
       controls.minAzimuthAngle = -Infinity;
       controls.maxAzimuthAngle = Infinity;
       controls.minPolarAngle = 0.1;
       controls.maxPolarAngle = Math.PI - 0.1;
       controls.enablePan = false;
-    } else {
-      // Solar system free-flight: wide constraints
-      controls.minDistance = 5;
-      controls.maxDistance = 60;
-      controls.minAzimuthAngle = -Infinity;
-      controls.maxAzimuthAngle = Infinity;
-      controls.minPolarAngle = 0.2;
-      controls.maxPolarAngle = Math.PI - 0.2;
-      controls.enablePan = true;
 
-      // Clamp target to prevent drifting into void
-      if (controls.target.length() > 25) {
-        controls.target.clampLength(0, 25);
-      }
-    }
-
-    // --- Planet tracking: follow orbiting planet ---
-    if (activePlanetId && activePlanetId !== "about") {
-      const planet = getPlanetById(activePlanetId);
-      if (planet) {
-        const pos = getPlanetPositionAtTime(planet, elapsed);
-        _planetPos.set(pos.x, pos.y, pos.z);
-
-        // Calculate camera offset from current target
-        _offset.copy(camera.position).sub(controls.target);
-
-        // Move target to planet's current position
-        controls.target.copy(_planetPos);
-
-        // Move camera to maintain same relative offset
-        camera.position.copy(_planetPos).add(_offset);
-      }
-    }
-
-    // --- WASD / Arrow key flight (only in solar system free-flight mode) ---
-    if (!activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
-      const keys = keysRef.current;
-      if (keys.size > 0) {
-        // Get camera forward direction (projected onto XZ plane for horizontal movement)
-        camera.getWorldDirection(_moveDir);
-        _moveDir.y = 0;
-        _moveDir.normalize();
-
-        // Side direction (perpendicular to forward on XZ plane)
-        _sideDir.set(_moveDir.z, 0, -_moveDir.x);
-
-        let dx = 0;
-        let dz = 0;
-
-        if (keys.has("w") || keys.has("arrowup")) {
-          dx += _moveDir.x;
-          dz += _moveDir.z;
-        }
-        if (keys.has("s") || keys.has("arrowdown")) {
-          dx -= _moveDir.x;
-          dz -= _moveDir.z;
-        }
-        if (keys.has("a") || keys.has("arrowleft")) {
-          dx += _sideDir.x;
-          dz += _sideDir.z;
-        }
-        if (keys.has("d") || keys.has("arrowright")) {
-          dx -= _sideDir.x;
-          dz -= _sideDir.z;
-        }
-
-        if (dx !== 0 || dz !== 0) {
-          const len = Math.hypot(dx, dz);
-          dx = (dx / len) * WASD_SPEED;
-          dz = (dz / len) * WASD_SPEED;
-
-          camera.position.x += dx;
-          camera.position.z += dz;
-          controls.target.x += dx;
-          controls.target.z += dz;
+      // Track orbiting planet
+      if (activePlanetId !== "about") {
+        const planet2 = getPlanetById(activePlanetId);
+        if (planet2) {
+          const pos = getPlanetPositionAtTime(planet2, elapsed);
+          _planetPos.set(pos.x, pos.y, pos.z);
+          _offset.copy(camera.position).sub(controls.target);
+          controls.target.copy(_planetPos);
+          camera.position.copy(_planetPos).add(_offset);
         }
       }
-    }
 
-    // --- Idle auto-rotate (solar system free-flight only) ---
-    if (isIdle && !activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
-      const autoRotateSpeed = 0.0008;
-      const angle = autoRotateSpeed;
-      const cx = camera.position.x;
-      const cz = camera.position.z;
-      camera.position.x = cx * Math.cos(angle) - cz * Math.sin(angle);
-      camera.position.z = cx * Math.sin(angle) + cz * Math.cos(angle);
       controls.update();
+      return;
     }
 
-    // --- Proximity detection (SOLAR_SYSTEM state only) ---
-    if (!flyToPlanetId && !isFlyingHome && !activePlanetId && !isEntering) {
+    // --- Free-flight: space-shooter controls ---
+    if (!flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
+      const keys = keysRef.current;
+      const hasInput = keys.size > 0;
+
+      // Build camera orientation from yaw + pitch + roll
+      _euler.set(pitchRef.current, yawRef.current, rollRef.current, "YXZ");
+      _quat.setFromEuler(_euler);
+      camera.quaternion.copy(_quat);
+
+      // Thrust: W forward, S backward (along camera look direction)
+      if (keys.has("w") || keys.has("s")) {
+        camera.getWorldDirection(_forward);
+        const thrust = keys.has("w") ? THRUST_SPEED : -THRUST_SPEED;
+        camera.position.addScaledVector(_forward, thrust);
+      }
+
+      // Roll: A rolls left, D rolls right
+      if (keys.has("a")) {
+        rollRef.current -= ROLL_SPEED;
+      }
+      if (keys.has("d")) {
+        rollRef.current += ROLL_SPEED;
+      }
+
+      // Idle auto-rotate (gentle orbit around Y axis when no input and idle)
+      if (isIdle && !hasInput && !pointerLockedRef.current) {
+        yawRef.current += 0.0008;
+        camera.quaternion.setFromEuler(
+          new Euler(pitchRef.current, yawRef.current, rollRef.current, "YXZ"),
+        );
+      }
+
+      // Proximity detection
       camera.getWorldDirection(_cameraDir);
 
       let closestId: string | null = null;
       let closestScore = Infinity;
 
-      // Check all planets
       for (const planet of PLANETS) {
         const pos = getPlanetPositionAtTime(planet, elapsed);
         _toPlanet.set(pos.x, pos.y, pos.z).sub(camera.position);
@@ -450,14 +485,10 @@ export function CameraController({
           Math.max(planet.orbitRadius / 10, 0.5) *
           (nearestRef.current === planet.id ? HYSTERESIS_MULTIPLIER : 1);
 
-        if (distance > threshold) {
-          continue;
-        }
+        if (distance > threshold) continue;
 
         const dot = _cameraDir.dot(_toPlanet.normalize());
-        if (dot < AIM_THRESHOLD) {
-          continue;
-        }
+        if (dot < AIM_THRESHOLD) continue;
 
         const score = distance * (1 - dot);
         if (score < closestScore) {
@@ -466,11 +497,10 @@ export function CameraController({
         }
       }
 
-      // Also check the Sun (About Me) at origin
+      // Check Sun
       _toPlanet.set(0, 0, 0).sub(camera.position);
       const sunDistance = _toPlanet.length();
-      const sunThreshold =
-        4 * (nearestRef.current === "about" ? HYSTERESIS_MULTIPLIER : 1);
+      const sunThreshold = 4 * (nearestRef.current === "about" ? HYSTERESIS_MULTIPLIER : 1);
       if (sunDistance <= sunThreshold) {
         const dot = _cameraDir.dot(_toPlanet.normalize());
         if (dot >= AIM_THRESHOLD) {
@@ -486,17 +516,22 @@ export function CameraController({
         nearestRef.current = closestId;
         onNearestPlanetChange?.(closestId);
       }
-    }
 
-    controls.update();
+      // Keep OrbitControls target in sync with camera position so
+      // the planet-orbit transition starts from the right place
+      controls.target.copy(camera.position).addScaledVector(_cameraDir, 5);
+      controls.update();
+    }
   });
 
+  // OrbitControls is used only in planet-orbit view and during GSAP tweens
+  // In free-flight, we drive the camera directly and keep controls in sync
   return (
     <OrbitControls
       ref={controlsRef}
       dampingFactor={0.05}
       enableDamping
-      enablePan={true}
+      enablePan={false}
       maxAzimuthAngle={Infinity}
       maxDistance={60}
       maxPolarAngle={Math.PI - 0.2}
