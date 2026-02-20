@@ -69,3 +69,27 @@
     opacity: 0;
   }
 }
+
+/* Mobile launch button */
+.terminal-screen__launch-btn {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid rgba(0, 255, 136, 0.6);
+  background: rgba(0, 255, 136, 0.15);
+  color: #00ff88;
+  border-radius: 8px;
+  padding: 14px 40px;
+  font-size: 14px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  touch-action: manipulation;
+  animation: launch-btn-pulse 2s ease-in-out infinite;
+}
+
+@keyframes launch-btn-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 136, 0.2); }
+  50% { box-shadow: 0 0 24px rgba(0, 255, 136, 0.45); }
+}

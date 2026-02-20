@@ -8,11 +8,15 @@ import { Terminal } from "./components/Terminal";
 import { CompanionScreen } from "./components/cockpit/CompanionScreen";
 import { CockpitLayout } from "./components/cockpit/CockpitLayout";
 import { DataScreen } from "./components/cockpit/DataScreen";
+import { MiniSystemMap } from "./components/cockpit/MiniSystemMap";
 import { NavScreen } from "./components/cockpit/NavScreen";
 import { StatusBar } from "./components/cockpit/StatusBar";
+import { VisorHUD } from "./components/visor/VisorHUD";
 import { getMissionForPlanet } from "./data/missions";
 import { getPlanetContent } from "./data/planetContent";
 import { PLANETS, getPlanetById } from "./data/planets";
+import { useDeviceCapability } from "./hooks/useDeviceCapability";
+import { usePerformanceTier } from "./hooks/usePerformanceTier";
 import { AppProvider, useAppContext } from "./state/AppState";
 
 function renderDataContent(
@@ -137,6 +141,9 @@ function renderDataContent(
 function CockpitExperience() {
   const { state, dispatch } = useAppContext();
   const [isEntering, setIsEntering] = useState(true);
+  const { isMobile, qualityTier } = useDeviceCapability();
+  const performanceTier = usePerformanceTier(qualityTier);
+  const isLowQuality = performanceTier === "low";
 
   // Play whoosh when a fly-to starts
   useEffect(() => {
@@ -155,7 +162,6 @@ function CockpitExperience() {
       ? state.view.planetId
       : undefined;
 
-  // For NavScreen highlighting: show active planet, or nearest detected planet
   const highlightedPlanetId =
     flyingToPlanetId ?? activePlanetId ?? state.nearestPlanetId ?? undefined;
 
@@ -167,47 +173,91 @@ function CockpitExperience() {
         ? "active"
         : "standby";
 
+  const toggleAudio = () => {
+    dispatch({ type: "TOGGLE_AUDIO" });
+    audioManager.setEnabled(!state.audioEnabled);
+  };
+
+  const handlePlanetSelect = (planetId: string) => {
+    if (isEntering) return;
+    if (state.view.type === "FLYING_TO_PLANET" || state.view.type === "FLYING_HOME") return;
+    audioManager.playClick();
+    dispatch({ type: "FLY_TO_PLANET", planetId });
+  };
+
+  // Shared canvas for both desktop and mobile
+  const canvas = (
+    <SolarSystem
+      activePlanetId={activePlanetId}
+      flyToPlanetId={flyingToPlanetId}
+      isEntering={isEntering}
+      isFlyingHome={state.view.type === "FLYING_HOME"}
+      onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
+      onArrivePlanet={(planetId) =>
+        dispatch({ type: "ARRIVE_AT_PLANET", planetId })
+      }
+      onEntranceComplete={() => setIsEntering(false)}
+      onNearestPlanetChange={(planetId) =>
+        dispatch({ type: "SET_NEAREST_PLANET", planetId })
+      }
+      onPlanetSelect={handlePlanetSelect}
+      companionActive={companionMode !== "standby"}
+      showHint={false}
+      showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
+      visitedPlanets={state.visitedPlanets}
+      starCount={isLowQuality ? 500 : isMobile ? 1500 : 5000}
+      reducedQuality={isLowQuality}
+      particleCount={isLowQuality ? 0 : isMobile ? 50 : 200}
+    />
+  );
+
+  // Shared companion component
+  const companion = (
+    <CompanionScreen
+      mode={companionMode}
+      missionId={state.view.type === "MISSION" ? state.view.missionId : undefined}
+      planetId={activePlanetId}
+    />
+  );
+
+  // Mobile: Visor HUD
+  if (isMobile) {
+    const mobileStatusText =
+      activePlanetId
+        ? activePlanetId.toUpperCase()
+        : flyingToPlanetId
+          ? `→ ${flyingToPlanetId.toUpperCase()}`
+          : "DIGITAL COSMOS";
+
+    return (
+      <VisorHUD
+        audioEnabled={state.audioEnabled}
+        canvas={canvas}
+        companionContent={companion}
+        dataContent={dataScreen.content}
+        dataTitle={dataScreen.title}
+        mapContent={
+          <MiniSystemMap
+            activePlanetId={highlightedPlanetId}
+            onSelectPlanet={(planetId) => {
+              audioManager.playClick();
+              dispatch({ type: "FLY_TO_PLANET", planetId });
+            }}
+            visitedPlanets={state.visitedPlanets}
+          />
+        }
+        onToggleAudio={toggleAudio}
+        statusText={mobileStatusText}
+      />
+    );
+  }
+
+  // Desktop: full cockpit layout
   return (
     <CockpitLayout
       audioEnabled={state.audioEnabled}
-      canvas={
-        <SolarSystem
-          activePlanetId={activePlanetId}
-          flyToPlanetId={flyingToPlanetId}
-          isEntering={isEntering}
-          isFlyingHome={state.view.type === "FLYING_HOME"}
-          onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
-          onArrivePlanet={(planetId) =>
-            dispatch({ type: "ARRIVE_AT_PLANET", planetId })
-          }
-          onEntranceComplete={() => setIsEntering(false)}
-          onNearestPlanetChange={(planetId) =>
-            dispatch({ type: "SET_NEAREST_PLANET", planetId })
-          }
-          onPlanetSelect={(planetId) => {
-            if (isEntering) {
-              return;
-            }
-            if (
-              state.view.type === "FLYING_TO_PLANET" ||
-              state.view.type === "FLYING_HOME"
-            ) {
-              return;
-            }
-
-            audioManager.playClick();
-            dispatch({ type: "FLY_TO_PLANET", planetId });
-          }}
-          companionActive={companionMode !== "standby"}
-          showHint={false}
-          showOrbitLines={state.view.type === "SOLAR_SYSTEM"}
-          visitedPlanets={state.visitedPlanets}
-        />
-      }
-      onToggleAudio={() => {
-          dispatch({ type: "TOGGLE_AUDIO" });
-          audioManager.setEnabled(!state.audioEnabled);
-        }}
+      canvas={canvas}
+      onToggleAudio={toggleAudio}
       screens={{
         nav: (
           <NavScreen
@@ -240,17 +290,7 @@ function CockpitExperience() {
             {dataScreen.content}
           </DataScreen>
         ),
-        companion: (
-          <CompanionScreen
-            mode={companionMode}
-            missionId={
-              state.view.type === "MISSION"
-                ? state.view.missionId
-                : undefined
-            }
-            planetId={activePlanetId}
-          />
-        ),
+        companion,
         status: (
           <StatusBar
             totalPlanets={PLANETS.length + 1}

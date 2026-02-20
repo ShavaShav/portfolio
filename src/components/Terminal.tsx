@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
 import { audioManager } from "../audio/AudioManager";
+import { getDeviceCapability } from "../hooks/useDeviceCapability";
 import {
   TERMINAL_INTRO_LINES,
   TERMINAL_LAUNCH_LINES,
@@ -259,6 +260,17 @@ export function Terminal({ onLaunch }: TerminalProps) {
         ref={inputRef}
         value={inputValue}
       />
+
+      {/* Mobile launch button */}
+      {getDeviceCapability().isMobile && !isBooting && !isLaunching ? (
+        <button
+          className="terminal-screen__launch-btn"
+          onClick={() => void runLaunchSequence()}
+          type="button"
+        >
+          LAUNCH
+        </button>
+      ) : null}
     </div>
   );
 }
