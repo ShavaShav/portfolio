@@ -45,6 +45,7 @@ export type AppAction =
   | { type: "ARRIVE_AT_PLANET"; planetId: string }
   | { type: "FLY_HOME" }
   | { type: "ARRIVE_HOME" }
+  | { type: "DISENGAGE_PLANET" }
   | { type: "ENTER_MISSION"; planetId: string; missionId: string }
   | { type: "EXIT_MISSION" }
   | { type: "TOGGLE_AUDIO" }
@@ -107,6 +108,19 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
     case "ARRIVE_HOME": {
+      return {
+        ...state,
+        view: { type: "SOLAR_SYSTEM" },
+      };
+    }
+    case "DISENGAGE_PLANET": {
+      // Immediately return to free-flight without fly-home animation
+      if (
+        state.view.type !== "PLANET_DETAIL" &&
+        state.view.type !== "MISSION"
+      ) {
+        return state;
+      }
       return {
         ...state,
         view: { type: "SOLAR_SYSTEM" },

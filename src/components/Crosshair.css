@@ -1,0 +1,43 @@
+.crosshair {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 8;
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.crosshair__svg {
+  width: 40px;
+  height: 40px;
+  stroke: rgba(0, 255, 136, 0.7);
+  stroke-width: 1.5;
+  transition: stroke 0.15s ease, filter 0.15s ease;
+  filter: drop-shadow(0 0 3px rgba(0, 255, 136, 0.4));
+}
+
+.crosshair--target .crosshair__svg {
+  stroke: rgba(255, 220, 80, 0.95);
+  filter: drop-shadow(0 0 5px rgba(255, 200, 60, 0.6));
+}
+
+.crosshair__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 220, 80, 0.9);
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255, 200, 60, 0.5);
+  white-space: nowrap;
+  animation: crosshair-label-fadein 0.15s ease both;
+}
+
+@keyframes crosshair-label-fadein {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

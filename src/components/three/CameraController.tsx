@@ -1,16 +1,14 @@
-import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import gsap from "gsap";
 import { useCallback, useEffect, useRef } from "react";
-import { Vector3 } from "three";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { useIdleState } from "../../hooks/useIdleTimer";
+import { Euler, MathUtils, Quaternion, Vector2, Vector3 } from "three";
 import { CAMERA_DEFAULT } from "../../data/cameraPositions";
 import {
   PLANETS,
   getPlanetById,
   getPlanetPositionAtTime,
 } from "../../data/planets";
+import { useIdleState } from "../../hooks/useIdleTimer";
 
 type CameraControllerProps = {
   flyToPlanetId?: string;
@@ -21,20 +19,39 @@ type CameraControllerProps = {
   onArriveHome?: () => void;
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
+  onDisengagePlanet?: () => void;
+  /** Called when user clicks while pointer-locked with a planet in the crosshair */
+  onSelectPlanet?: (planetId: string) => void;
+  onCrosshairPlanetChange?: (planetId: string | null) => void;
+  onPointerLockChange?: (locked: boolean) => void;
 };
 
 // Pre-allocate reusable vectors to avoid GC churn in useFrame
 const _cameraDir = new Vector3();
 const _toPlanet = new Vector3();
-const _offset = new Vector3();
 const _planetPos = new Vector3();
-const _moveDir = new Vector3();
-const _sideDir = new Vector3();
+const _forward = new Vector3();
+const _right = new Vector3();
+const _worldUp = new Vector3(0, 1, 0);
+const _deltaRot = new Quaternion();
+const _pitchAxis = new Vector3();
+const _yawAxis = new Vector3(0, 1, 0);
+const _euler = new Euler();
 
 const PROXIMITY_BASE_THRESHOLD = 6;
 const AIM_THRESHOLD = 0.85;
 const HYSTERESIS_MULTIPLIER = 1.5;
-const WASD_SPEED = 0.15;
+
+// dot-product threshold for crosshair aim (higher = tighter cone, ~2° at 0.9994)
+const CROSSHAIR_AIM_THRESHOLD = 0.994;
+
+// 6DoF flight tuning
+const THRUST_SPEED = 0.12;
+const STRAFE_SPEED = 0.10;
+const VERTICAL_SPEED = 0.10;
+const ROLL_SPEED = 0.025;
+const MOUSE_SENSITIVITY = 0.0018;
+const PITCH_LIMIT = Math.PI * 0.48; // ~86 degrees
 
 export function CameraController({
   flyToPlanetId,
@@ -45,9 +62,13 @@ export function CameraController({
   onArriveHome,
   onEntranceComplete,
   onNearestPlanetChange,
+  onDisengagePlanet,
+  onSelectPlanet,
+  onCrosshairPlanetChange,
+  onPointerLockChange,
 }: CameraControllerProps) {
-  const { camera, clock } = useThree();
-  const controlsRef = useRef<OrbitControlsImpl>(null);
+  const { camera, gl, clock } = useThree();
+
   const activeTweenRef = useRef<gsap.core.Tween | null>(null);
   const activeFlightRef = useRef<string | null>(null);
   const hasEnteredRef = useRef(false);
@@ -56,24 +77,111 @@ export function CameraController({
   // Track idle state for auto-rotate
   const isIdle = useIdleState(30_000);
 
-  // Track which keys are currently held for WASD flight
+  // Track which keys are currently held
   const keysRef = useRef<Set<string>>(new Set());
 
-  // Track the fly-to planet and progress for smooth tracking during flight
-  const flyingPlanetRef = useRef<string | null>(null);
-  const flyProgressRef = useRef(0);
+  // Mouse look state
+  const isPointerLockedRef = useRef(false);
+  const mouseDeltaRef = useRef<Vector2>(new Vector2());
 
-  // Keyboard event handlers for WASD flight
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    const key = event.key.toLowerCase();
-    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key)) {
-      keysRef.current.add(key);
-    }
-  }, []);
+  // Accumulated pitch to enforce limits
+  const pitchRef = useRef(0);
+
+  // Whether flight controls are active (not in tween / locked state)
+  const flightActiveRef = useRef(true);
+
+  // Track the fly-to planet progress for smooth tracking during flight
+  const flyingPlanetRef = useRef<string | null>(null);
+
+  // Planet position at last frame — used to compute per-frame delta while locked on
+  const prevPlanetPosRef = useRef<Vector3>(new Vector3());
+  // Whether we've captured the initial planet position for the current lock-on
+  const offsetCapturedRef = useRef(false);
+
+  // Planet currently centered in the crosshair (pointer-locked free-flight)
+  const crosshairPlanetRef = useRef<string | null>(null);
+
+  // Stable refs to callbacks so pointer-lock event handlers don't go stale
+  const onPlanetSelectRef = useRef<((id: string) => void) | null>(null);
+  const onPointerLockChangeRef = useRef<((locked: boolean) => void) | null>(null);
+  useEffect(() => {
+    onPlanetSelectRef.current = onSelectPlanet ?? null;
+    onPointerLockChangeRef.current = onPointerLockChange ?? null;
+  });
+
+  // ── Pointer lock ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const canvas = gl.domElement;
+
+    const onPointerLockChange = () => {
+      const locked = document.pointerLockElement === canvas;
+      isPointerLockedRef.current = locked;
+      onPointerLockChangeRef.current?.(locked);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isPointerLockedRef.current) return;
+      mouseDeltaRef.current.x += e.movementX;
+      mouseDeltaRef.current.y += e.movementY;
+    };
+
+    // Click: acquire pointer lock, or if already locked, lock on to crosshair planet
+    const onCanvasClick = () => {
+      if (!isPointerLockedRef.current) {
+        if (flightActiveRef.current) canvas.requestPointerLock();
+      } else {
+        // Already pointer-locked → lock on to whatever is in crosshair
+        const id = crosshairPlanetRef.current;
+        if (id && onPlanetSelectRef.current) {
+          onPlanetSelectRef.current(id);
+        }
+      }
+    };
+
+    document.addEventListener("pointerlockchange", onPointerLockChange);
+    document.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("click", onCanvasClick);
+
+    return () => {
+      document.removeEventListener("pointerlockchange", onPointerLockChange);
+      document.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("click", onCanvasClick);
+    };
+  }, [gl.domElement]);
+
+  // ── Keyboard ──────────────────────────────────────────────────────────────
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      // Ignore if typing in an input
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      const flightKeys = new Set([
+        "w", "s", "a", "d", "q", "e",
+        "shift", "control", " ", "c",
+        "arrowup", "arrowdown", "arrowleft", "arrowright",
+      ]);
+
+      if (flightKeys.has(key)) {
+        event.preventDefault();
+        keysRef.current.add(key);
+
+        // Disengage from planet when user hits any flight key
+        if (activePlanetId && onDisengagePlanet) {
+          onDisengagePlanet();
+        }
+      }
+    },
+    [activePlanetId, onDisengagePlanet],
+  );
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
-    const key = event.key.toLowerCase();
-    keysRef.current.delete(key);
+    keysRef.current.delete(event.key.toLowerCase());
   }, []);
 
   useEffect(() => {
@@ -85,6 +193,7 @@ export function CameraController({
     };
   }, [handleKeyDown, handleKeyUp]);
 
+  // Kill tweens on unmount
   useEffect(() => {
     return () => {
       activeTweenRef.current?.kill();
@@ -92,23 +201,19 @@ export function CameraController({
     };
   }, []);
 
-  // Entrance animation: zoom in from far away
+  // ── Entrance animation ────────────────────────────────────────────────────
   useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls || !isEntering || hasEnteredRef.current) {
-      return;
-    }
+    if (!isEntering || hasEnteredRef.current) return;
 
     hasEnteredRef.current = true;
-    controls.enabled = false;
+    flightActiveRef.current = false;
+
+    camera.lookAt(0, 0, 0);
 
     const cameraState = {
       x: camera.position.x,
       y: camera.position.y,
       z: camera.position.z,
-      tx: controls.target.x,
-      ty: controls.target.y,
-      tz: controls.target.z,
     };
 
     activeTweenRef.current = gsap.to(cameraState, {
@@ -117,71 +222,55 @@ export function CameraController({
       x: CAMERA_DEFAULT.position[0],
       y: CAMERA_DEFAULT.position[1],
       z: CAMERA_DEFAULT.position[2],
-      tx: CAMERA_DEFAULT.target[0],
-      ty: CAMERA_DEFAULT.target[1],
-      tz: CAMERA_DEFAULT.target[2],
       onUpdate: () => {
         camera.position.set(cameraState.x, cameraState.y, cameraState.z);
-        controls.target.set(cameraState.tx, cameraState.ty, cameraState.tz);
-        controls.update();
+        camera.lookAt(0, 0, 0);
       },
       onComplete: () => {
-        controls.enabled = true;
         activeTweenRef.current = null;
+        flightActiveRef.current = true;
+        // Reset pitch tracking to match post-lookAt orientation
+        _euler.setFromQuaternion(camera.quaternion, "YXZ");
+        pitchRef.current = _euler.x;
         onEntranceComplete?.();
       },
     });
   }, [isEntering, camera, onEntranceComplete]);
 
-  // Fly-to-planet and fly-home animations
+  // ── Fly-to-planet / fly-home animations ───────────────────────────────────
   useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls) {
-      return;
-    }
-
-    // Don't start fly-to during entrance animation
-    if (isEntering && !hasEnteredRef.current) {
-      return;
-    }
+    if (isEntering && !hasEnteredRef.current) return;
 
     if (flyToPlanetId) {
-      // Special case: Sun / About Me (stationary target)
       if (flyToPlanetId === "about") {
-        if (activeFlightRef.current === "planet:about") {
-          return;
-        }
+        if (activeFlightRef.current === "planet:about") return;
         activeFlightRef.current = "planet:about";
         flyingPlanetRef.current = null;
         activeTweenRef.current?.kill();
-        controls.enabled = false;
+        flightActiveRef.current = false;
 
         const cameraState = {
           x: camera.position.x,
           y: camera.position.y,
           z: camera.position.z,
-          tx: controls.target.x,
-          ty: controls.target.y,
-          tz: controls.target.z,
         };
+        const targetPos = { x: 0, y: 2, z: 5 };
 
         activeTweenRef.current = gsap.to(cameraState, {
           duration: 1.5,
           ease: "power2.inOut",
-          x: 0,
-          y: 2,
-          z: 5,
-          tx: 0,
-          ty: 0,
-          tz: 0,
+          x: targetPos.x,
+          y: targetPos.y,
+          z: targetPos.z,
           onUpdate: () => {
             camera.position.set(cameraState.x, cameraState.y, cameraState.z);
-            controls.target.set(cameraState.tx, cameraState.ty, cameraState.tz);
-            controls.update();
+            camera.lookAt(0, 0, 0);
           },
           onComplete: () => {
-            controls.enabled = true;
             activeTweenRef.current = null;
+            flightActiveRef.current = true;
+            _euler.setFromQuaternion(camera.quaternion, "YXZ");
+            pitchRef.current = _euler.x;
             flyingPlanetRef.current = null;
             onArrivePlanet?.("about");
           },
@@ -189,29 +278,19 @@ export function CameraController({
         return;
       }
 
-      // Flying to an orbiting planet: animate a progress value 0→1
-      // and compute position from the planet's LIVE position each frame
+      // Flying to an orbiting planet
       const flightId = `planet:${flyToPlanetId}`;
-      if (activeFlightRef.current === flightId) {
-        return;
-      }
+      if (activeFlightRef.current === flightId) return;
 
       activeFlightRef.current = flightId;
       flyingPlanetRef.current = flyToPlanetId;
-      flyProgressRef.current = 0;
       activeTweenRef.current?.kill();
-      controls.enabled = false;
+      flightActiveRef.current = false;
 
-      // Capture starting position
       const startPos = {
         x: camera.position.x,
         y: camera.position.y,
         z: camera.position.z,
-      };
-      const startTarget = {
-        x: controls.target.x,
-        y: controls.target.y,
-        z: controls.target.z,
       };
 
       const progressObj = { t: 0 };
@@ -221,16 +300,13 @@ export function CameraController({
         ease: "power2.inOut",
         t: 1,
         onUpdate: () => {
-          flyProgressRef.current = progressObj.t;
           const t = progressObj.t;
 
-          // Get planet's CURRENT position (tracks moving planet)
           const planet = getPlanetById(flyToPlanetId);
           if (!planet) return;
           const elapsed = clock.getElapsedTime();
           const pos = getPlanetPositionAtTime(planet, elapsed);
 
-          // Compute camera offset from planet center
           const dist = Math.hypot(pos.x, pos.y, pos.z);
           const safeDist = dist === 0 ? 1 : dist;
           const closeDistance = planet.radius * 3;
@@ -242,46 +318,36 @@ export function CameraController({
             z: pos.z + pos.z * scale,
           };
 
-          // Lerp from start to end based on progress
           camera.position.set(
             startPos.x + (endPos.x - startPos.x) * t,
             startPos.y + (endPos.y - startPos.y) * t,
             startPos.z + (endPos.z - startPos.z) * t,
           );
-          controls.target.set(
-            startTarget.x + (pos.x - startTarget.x) * t,
-            startTarget.y + (pos.y - startTarget.y) * t,
-            startTarget.z + (pos.z - startTarget.z) * t,
-          );
-          controls.update();
+          camera.lookAt(pos.x, pos.y, pos.z);
         },
         onComplete: () => {
-          controls.enabled = true;
           activeTweenRef.current = null;
+          flightActiveRef.current = true;
+          _euler.setFromQuaternion(camera.quaternion, "YXZ");
+          pitchRef.current = _euler.x;
           flyingPlanetRef.current = null;
           onArrivePlanet?.(flyToPlanetId);
         },
       });
-
       return;
     }
 
     if (isFlyingHome) {
-      if (activeFlightRef.current === "home") {
-        return;
-      }
+      if (activeFlightRef.current === "home") return;
       activeFlightRef.current = "home";
       flyingPlanetRef.current = null;
       activeTweenRef.current?.kill();
-      controls.enabled = false;
+      flightActiveRef.current = false;
 
       const cameraState = {
         x: camera.position.x,
         y: camera.position.y,
         z: camera.position.z,
-        tx: controls.target.x,
-        ty: controls.target.y,
-        tz: controls.target.z,
       };
 
       activeTweenRef.current = gsap.to(cameraState, {
@@ -290,26 +356,23 @@ export function CameraController({
         x: CAMERA_DEFAULT.position[0],
         y: CAMERA_DEFAULT.position[1],
         z: CAMERA_DEFAULT.position[2],
-        tx: CAMERA_DEFAULT.target[0],
-        ty: CAMERA_DEFAULT.target[1],
-        tz: CAMERA_DEFAULT.target[2],
         onUpdate: () => {
           camera.position.set(cameraState.x, cameraState.y, cameraState.z);
-          controls.target.set(cameraState.tx, cameraState.ty, cameraState.tz);
-          controls.update();
+          camera.lookAt(0, 0, 0);
         },
         onComplete: () => {
-          controls.enabled = true;
           activeTweenRef.current = null;
+          flightActiveRef.current = true;
+          _euler.setFromQuaternion(camera.quaternion, "YXZ");
+          pitchRef.current = _euler.x;
           onArriveHome?.();
         },
       });
-
       return;
     }
 
     activeFlightRef.current = null;
-    controls.enabled = true;
+    flightActiveRef.current = true;
   }, [
     camera,
     clock,
@@ -320,116 +383,159 @@ export function CameraController({
     onArrivePlanet,
   ]);
 
-  // useFrame: dynamic constraints, planet tracking, WASD flight, proximity detection
-  useFrame(() => {
-    const controls = controlsRef.current;
-    if (!controls) {
-      return;
-    }
-
+  // ── Per-frame: 6DoF flight, planet tracking, proximity detection ──────────
+  useFrame((_state, delta) => {
     const elapsed = clock.getElapsedTime();
+    const dt = Math.min(delta, 0.05); // cap to avoid huge jumps
 
-    // --- Dynamic OrbitControls constraints ---
-    if (activePlanetId) {
-      const planet = getPlanetById(activePlanetId);
-      if (planet) {
-        controls.minDistance = planet.radius * 1.8;
-        controls.maxDistance = planet.radius * 8;
-      }
-      // Allow full 360° orbit around planet
-      controls.minAzimuthAngle = -Infinity;
-      controls.maxAzimuthAngle = Infinity;
-      controls.minPolarAngle = 0.1;
-      controls.maxPolarAngle = Math.PI - 0.1;
-      controls.enablePan = false;
-    } else {
-      // Solar system free-flight: wide constraints
-      controls.minDistance = 5;
-      controls.maxDistance = 60;
-      controls.minAzimuthAngle = -Infinity;
-      controls.maxAzimuthAngle = Infinity;
-      controls.minPolarAngle = 0.2;
-      controls.maxPolarAngle = Math.PI - 0.2;
-      controls.enablePan = true;
-
-      // Clamp target to prevent drifting into void
-      if (controls.target.length() > 25) {
-        controls.target.clampLength(0, 25);
-      }
-    }
-
-    // --- Planet tracking: follow orbiting planet ---
+    // --- Planet tracking: move with the planet as it orbits, maintain offset ---
     if (activePlanetId && activePlanetId !== "about") {
       const planet = getPlanetById(activePlanetId);
       if (planet) {
         const pos = getPlanetPositionAtTime(planet, elapsed);
         _planetPos.set(pos.x, pos.y, pos.z);
 
-        // Calculate camera offset from current target
-        _offset.copy(camera.position).sub(controls.target);
+        if (!offsetCapturedRef.current) {
+          // Record the planet's initial position so we can track its delta each frame
+          prevPlanetPosRef.current.copy(_planetPos);
+          offsetCapturedRef.current = true;
+        } else {
+          // Move camera by how much the planet moved this frame
+          _forward.copy(_planetPos).sub(prevPlanetPosRef.current);
+          camera.position.add(_forward);
+          prevPlanetPosRef.current.copy(_planetPos);
+        }
 
-        // Move target to planet's current position
-        controls.target.copy(_planetPos);
-
-        // Move camera to maintain same relative offset
-        camera.position.copy(_planetPos).add(_offset);
+        // Always face the planet
+        camera.lookAt(_planetPos);
       }
+    } else {
+      // Reset offset tracking when not locked on
+      offsetCapturedRef.current = false;
     }
 
-    // --- WASD / Arrow key flight (only in solar system free-flight mode) ---
-    if (!activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
+    // --- 6DoF flight controls (active during free-flight only) ---
+    if (
+      flightActiveRef.current &&
+      !activePlanetId &&
+      !flyToPlanetId &&
+      !isFlyingHome &&
+      !isEntering
+    ) {
       const keys = keysRef.current;
-      if (keys.size > 0) {
-        // Get camera forward direction (projected onto XZ plane for horizontal movement)
-        camera.getWorldDirection(_moveDir);
-        _moveDir.y = 0;
-        _moveDir.normalize();
 
-        // Side direction (perpendicular to forward on XZ plane)
-        _sideDir.set(_moveDir.z, 0, -_moveDir.x);
+      // Mouse look (pointer-locked)
+      if (isPointerLockedRef.current) {
+        const dx = mouseDeltaRef.current.x * MOUSE_SENSITIVITY;
+        const dy = mouseDeltaRef.current.y * MOUSE_SENSITIVITY;
+        mouseDeltaRef.current.set(0, 0);
 
-        let dx = 0;
-        let dz = 0;
+        if (dx !== 0 || dy !== 0) {
+          // Yaw: rotate around world Y
+          _deltaRot.setFromAxisAngle(_yawAxis, -dx);
+          camera.quaternion.premultiply(_deltaRot);
 
-        if (keys.has("w") || keys.has("arrowup")) {
-          dx += _moveDir.x;
-          dz += _moveDir.z;
+          // Pitch: rotate around camera local X, clamped
+          const newPitch = MathUtils.clamp(
+            pitchRef.current - dy,
+            -PITCH_LIMIT,
+            PITCH_LIMIT,
+          );
+          const pitchDelta = newPitch - pitchRef.current;
+          pitchRef.current = newPitch;
+
+          _pitchAxis.set(1, 0, 0).applyQuaternion(camera.quaternion);
+          _deltaRot.setFromAxisAngle(_pitchAxis, pitchDelta);
+          camera.quaternion.premultiply(_deltaRot);
         }
-        if (keys.has("s") || keys.has("arrowdown")) {
-          dx -= _moveDir.x;
-          dz -= _moveDir.z;
+      }
+
+      // Thrust / strafe / vertical
+      camera.getWorldDirection(_forward);
+      _right.crossVectors(_forward, _worldUp).normalize();
+
+      if (keys.has("w") || keys.has("arrowup")) {
+        camera.position.addScaledVector(_forward, THRUST_SPEED * dt * 60);
+      }
+      if (keys.has("s") || keys.has("arrowdown")) {
+        camera.position.addScaledVector(_forward, -THRUST_SPEED * dt * 60);
+      }
+      if (keys.has("a") || keys.has("arrowleft")) {
+        camera.position.addScaledVector(_right, -STRAFE_SPEED * dt * 60);
+      }
+      if (keys.has("d") || keys.has("arrowright")) {
+        camera.position.addScaledVector(_right, STRAFE_SPEED * dt * 60);
+      }
+
+      // Vertical: Shift = up, Ctrl = down; also Space = up, C = down
+      if (keys.has("shift") || keys.has(" ")) {
+        camera.position.y += VERTICAL_SPEED * dt * 60;
+      }
+      if (keys.has("control") || keys.has("c")) {
+        camera.position.y -= VERTICAL_SPEED * dt * 60;
+      }
+
+      // Roll: Q = roll left, E = roll right
+      if (keys.has("q")) {
+        _forward.copy(camera.getWorldDirection(_forward));
+        _deltaRot.setFromAxisAngle(_forward, ROLL_SPEED * dt * 60);
+        camera.quaternion.premultiply(_deltaRot);
+      }
+      if (keys.has("e")) {
+        _forward.copy(camera.getWorldDirection(_forward));
+        _deltaRot.setFromAxisAngle(_forward, -ROLL_SPEED * dt * 60);
+        camera.quaternion.premultiply(_deltaRot);
+      }
+
+      // Crosshair planet detection (only when pointer-locked so aim matters)
+      if (isPointerLockedRef.current) {
+        camera.getWorldDirection(_cameraDir);
+        let crosshairId: string | null = null;
+        let bestDot = CROSSHAIR_AIM_THRESHOLD;
+
+        for (const planet of PLANETS) {
+          const pos = getPlanetPositionAtTime(planet, elapsed);
+          _toPlanet.set(pos.x, pos.y, pos.z).sub(camera.position).normalize();
+          const dot = _cameraDir.dot(_toPlanet);
+          if (dot > bestDot) {
+            bestDot = dot;
+            crosshairId = planet.id;
+          }
         }
-        if (keys.has("a") || keys.has("arrowleft")) {
-          dx += _sideDir.x;
-          dz += _sideDir.z;
-        }
-        if (keys.has("d") || keys.has("arrowright")) {
-          dx -= _sideDir.x;
-          dz -= _sideDir.z;
+        // Check Sun too
+        _toPlanet.set(0, 0, 0).sub(camera.position).normalize();
+        const sunDot = _cameraDir.dot(_toPlanet);
+        if (sunDot > bestDot) {
+          crosshairId = "about";
         }
 
-        if (dx !== 0 || dz !== 0) {
-          const len = Math.hypot(dx, dz);
-          dx = (dx / len) * WASD_SPEED;
-          dz = (dz / len) * WASD_SPEED;
-
-          camera.position.x += dx;
-          camera.position.z += dz;
-          controls.target.x += dx;
-          controls.target.z += dz;
+        if (crosshairId !== crosshairPlanetRef.current) {
+          crosshairPlanetRef.current = crosshairId;
+          onCrosshairPlanetChange?.(crosshairId);
         }
+      } else if (crosshairPlanetRef.current !== null) {
+        crosshairPlanetRef.current = null;
+        onCrosshairPlanetChange?.(null);
       }
     }
 
-    // --- Idle auto-rotate (solar system free-flight only) ---
-    if (isIdle && !activePlanetId && !flyToPlanetId && !isFlyingHome && !isEntering && controls.enabled) {
-      const autoRotateSpeed = 0.0008;
-      const angle = autoRotateSpeed;
+    // --- Idle auto-rotate (solar system free-flight only, no pointer lock) ---
+    if (
+      isIdle &&
+      !activePlanetId &&
+      !flyToPlanetId &&
+      !isFlyingHome &&
+      !isEntering &&
+      flightActiveRef.current &&
+      !isPointerLockedRef.current
+    ) {
+      // Slowly orbit around origin
+      const angle = 0.0008;
       const cx = camera.position.x;
       const cz = camera.position.z;
       camera.position.x = cx * Math.cos(angle) - cz * Math.sin(angle);
       camera.position.z = cx * Math.sin(angle) + cz * Math.cos(angle);
-      controls.update();
+      camera.lookAt(0, 0, 0);
     }
 
     // --- Proximity detection (SOLAR_SYSTEM state only) ---
@@ -439,7 +545,6 @@ export function CameraController({
       let closestId: string | null = null;
       let closestScore = Infinity;
 
-      // Check all planets
       for (const planet of PLANETS) {
         const pos = getPlanetPositionAtTime(planet, elapsed);
         _toPlanet.set(pos.x, pos.y, pos.z).sub(camera.position);
@@ -450,14 +555,10 @@ export function CameraController({
           Math.max(planet.orbitRadius / 10, 0.5) *
           (nearestRef.current === planet.id ? HYSTERESIS_MULTIPLIER : 1);
 
-        if (distance > threshold) {
-          continue;
-        }
+        if (distance > threshold) continue;
 
         const dot = _cameraDir.dot(_toPlanet.normalize());
-        if (dot < AIM_THRESHOLD) {
-          continue;
-        }
+        if (dot < AIM_THRESHOLD) continue;
 
         const score = distance * (1 - dot);
         if (score < closestScore) {
@@ -466,7 +567,7 @@ export function CameraController({
         }
       }
 
-      // Also check the Sun (About Me) at origin
+      // Also check the Sun at origin
       _toPlanet.set(0, 0, 0).sub(camera.position);
       const sunDistance = _toPlanet.length();
       const sunThreshold =
@@ -476,7 +577,6 @@ export function CameraController({
         if (dot >= AIM_THRESHOLD) {
           const score = sunDistance * (1 - dot);
           if (score < closestScore) {
-            closestScore = score;
             closestId = "about";
           }
         }
@@ -487,22 +587,8 @@ export function CameraController({
         onNearestPlanetChange?.(closestId);
       }
     }
-
-    controls.update();
   });
 
-  return (
-    <OrbitControls
-      ref={controlsRef}
-      dampingFactor={0.05}
-      enableDamping
-      enablePan={true}
-      maxAzimuthAngle={Infinity}
-      maxDistance={60}
-      maxPolarAngle={Math.PI - 0.2}
-      minAzimuthAngle={-Infinity}
-      minDistance={5}
-      minPolarAngle={0.2}
-    />
-  );
+  // No JSX needed - this is a pure logic component
+  return null;
 }

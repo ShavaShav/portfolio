@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
@@ -14,7 +14,11 @@ import { Sun } from "./three/Sun";
 import "./SolarSystem.css";
 
 type SolarSystemProps = {
+  children?: ReactNode;
   onPlanetSelect?: (planetId: string) => void;
+  onDisengagePlanet?: () => void;
+  onCrosshairPlanetChange?: (planetId: string | null) => void;
+  onPointerLockChange?: (locked: boolean) => void;
   showOrbitLines?: boolean;
   starCount?: number;
   flyToPlanetId?: string;
@@ -34,7 +38,11 @@ type SolarSystemProps = {
 };
 
 export function SolarSystem({
+  children,
   onPlanetSelect,
+  onDisengagePlanet,
+  onCrosshairPlanetChange,
+  onPointerLockChange,
   showOrbitLines = true,
   starCount = 5000,
   flyToPlanetId,
@@ -64,6 +72,13 @@ export function SolarSystem({
     [onPlanetSelect],
   );
 
+  // Clicking on empty space while locked onto a planet disengages it
+  const handlePointerMissed = useCallback(() => {
+    if (activePlanetId && onDisengagePlanet) {
+      onDisengagePlanet();
+    }
+  }, [activePlanetId, onDisengagePlanet]);
+
   return (
     <div className="solar-system">
       <Canvas
@@ -71,6 +86,7 @@ export function SolarSystem({
           fov: 60,
           position: CAMERA_ENTRANCE.position,
         }}
+        onPointerMissed={handlePointerMissed}
       >
         <color args={["#04060d"]} attach="background" />
         <ambientLight intensity={0.25} />
@@ -121,8 +137,12 @@ export function SolarSystem({
           isFlyingHome={isFlyingHome}
           onArriveHome={onArriveHome}
           onArrivePlanet={onArrivePlanet}
+          onDisengagePlanet={onDisengagePlanet}
           onEntranceComplete={onEntranceComplete}
           onNearestPlanetChange={onNearestPlanetChange}
+          onSelectPlanet={onPlanetSelect}
+          onCrosshairPlanetChange={onCrosshairPlanetChange}
+          onPointerLockChange={onPointerLockChange}
         />
         <PostProcessing reducedQuality={reducedQuality} />
       </Canvas>
@@ -132,6 +152,8 @@ export function SolarSystem({
           Click a planet to initiate fly-to.
         </div>
       ) : null}
+
+      {children}
     </div>
   );
 }

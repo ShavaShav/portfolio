@@ -1,0 +1,105 @@
+.flight-hint-overlay {
+  position: fixed;
+  /* Sit below the nav panel (left side) at the vertical midpoint of the canvas area */
+  bottom: 200px;
+  left: 280px;
+  z-index: 7;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-radius: 8px;
+  background: rgba(4, 6, 13, 0.82);
+  backdrop-filter: blur(6px);
+  color: #c8ffea;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  pointer-events: none;
+  user-select: none;
+  min-width: 200px;
+  animation: flight-hint-fadein 0.4s ease both;
+}
+
+.flight-hint-overlay--locked {
+  border-color: rgba(255, 200, 60, 0.4);
+  color: #fff9d8;
+}
+
+@keyframes flight-hint-fadein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.flight-hint-overlay__title {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: rgba(0, 255, 136, 0.6);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 255, 136, 0.12);
+  padding-bottom: 5px;
+}
+
+.flight-hint-overlay--locked .flight-hint-overlay__title {
+  color: rgba(255, 200, 60, 0.7);
+  border-bottom-color: rgba(255, 200, 60, 0.15);
+}
+
+.flight-hint-overlay__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.flight-hint-overlay__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.flight-hint-overlay__keys {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.flight-hint-overlay__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 3px;
+  background: rgba(0, 255, 136, 0.07);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #9dffcf;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.flight-hint-overlay--locked .flight-hint-overlay__kbd {
+  border-color: rgba(255, 200, 60, 0.3);
+  background: rgba(255, 200, 60, 0.07);
+  color: #ffe78a;
+}
+
+.flight-hint-overlay__sep {
+  color: rgba(0, 255, 136, 0.35);
+  font-size: 10px;
+}
+
+.flight-hint-overlay__desc {
+  color: rgba(200, 255, 234, 0.6);
+  font-size: 10px;
+  text-align: right;
+  flex: 1;
+}
+
+.flight-hint-overlay--locked .flight-hint-overlay__desc {
+  color: rgba(255, 249, 216, 0.6);
+}

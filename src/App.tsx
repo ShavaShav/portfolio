@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { audioManager } from "./audio/AudioManager";
+import { Crosshair } from "./components/Crosshair";
+import { FlightHintOverlay } from "./components/FlightHintOverlay";
 import { Mission } from "./components/Mission";
 import { PlanetDetail } from "./components/PlanetDetail";
 import { SolarSystem } from "./components/SolarSystem";
@@ -141,6 +143,8 @@ function renderDataContent(
 function CockpitExperience() {
   const { state, dispatch } = useAppContext();
   const [isEntering, setIsEntering] = useState(true);
+  const [isPointerLocked, setIsPointerLocked] = useState(false);
+  const [crosshairPlanetId, setCrosshairPlanetId] = useState<string | null>(null);
   const { isMobile, qualityTier } = useDeviceCapability();
   const performanceTier = usePerformanceTier(qualityTier);
   const isLowQuality = performanceTier === "low";
@@ -181,9 +185,30 @@ function CockpitExperience() {
   const handlePlanetSelect = (planetId: string) => {
     if (isEntering) return;
     if (state.view.type === "FLYING_TO_PLANET" || state.view.type === "FLYING_HOME") return;
+    // If already locked onto this planet, do nothing
+    if (activePlanetId === planetId) return;
     audioManager.playClick();
     dispatch({ type: "FLY_TO_PLANET", planetId });
   };
+
+  const handleDisengagePlanet = () => {
+    if (state.view.type === "PLANET_DETAIL" || state.view.type === "MISSION") {
+      dispatch({ type: "DISENGAGE_PLANET" });
+    }
+  };
+
+  const lockedPlanetLabel = activePlanetId
+    ? getPlanetById(activePlanetId)?.label ?? activePlanetId
+    : undefined;
+
+  const crosshairPlanetLabel = crosshairPlanetId
+    ? getPlanetById(crosshairPlanetId)?.label ?? (crosshairPlanetId === "about" ? "About Me" : crosshairPlanetId)
+    : undefined;
+
+  const showFlightHints =
+    !isMobile &&
+    !isEntering &&
+    (state.view.type === "SOLAR_SYSTEM" || state.view.type === "PLANET_DETAIL");
 
   // Shared canvas for both desktop and mobile
   const canvas = (
@@ -196,11 +221,14 @@ function CockpitExperience() {
       onArrivePlanet={(planetId) =>
         dispatch({ type: "ARRIVE_AT_PLANET", planetId })
       }
+      onDisengagePlanet={handleDisengagePlanet}
       onEntranceComplete={() => setIsEntering(false)}
       onNearestPlanetChange={(planetId) =>
         dispatch({ type: "SET_NEAREST_PLANET", planetId })
       }
       onPlanetSelect={handlePlanetSelect}
+      onCrosshairPlanetChange={setCrosshairPlanetId}
+      onPointerLockChange={setIsPointerLocked}
       companionActive={companionMode !== "standby"}
       showHint={false}
       showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
@@ -210,6 +238,18 @@ function CockpitExperience() {
       particleCount={isLowQuality ? 0 : isMobile ? 50 : 200}
     />
   );
+
+  const flightOverlays = !isMobile && !isEntering ? (
+    <>
+      {isPointerLocked && <Crosshair targetPlanetLabel={crosshairPlanetLabel} />}
+      {showFlightHints && (
+        <FlightHintOverlay
+          lockedOn={!!activePlanetId}
+          planetLabel={lockedPlanetLabel}
+        />
+      )}
+    </>
+  ) : null;
 
   // Shared companion component
   const companion = (
@@ -254,52 +294,55 @@ function CockpitExperience() {
 
   // Desktop: full cockpit layout
   return (
-    <CockpitLayout
-      audioEnabled={state.audioEnabled}
-      canvas={canvas}
-      onToggleAudio={toggleAudio}
-      screens={{
-        nav: (
-          <NavScreen
-            activePlanetId={highlightedPlanetId}
-            onFlyHome={
-              state.view.type === "PLANET_DETAIL" ||
-              state.view.type === "MISSION"
-                ? () => dispatch({ type: "FLY_HOME" })
-                : undefined
-            }
-            onSelectPlanet={(planetId) =>
-              dispatch({ type: "FLY_TO_PLANET", planetId })
-            }
-            viewType={state.view.type}
-            visitedPlanets={state.visitedPlanets}
-          />
-        ),
-        data: (
-          <DataScreen
-            contentKey={`${state.view.type}:${activePlanetId ?? state.nearestPlanetId ?? "none"}`}
-            onBack={
-              state.view.type === "MISSION"
-                ? () => dispatch({ type: "EXIT_MISSION" })
-                : state.view.type === "PLANET_DETAIL"
+    <>
+      <CockpitLayout
+        audioEnabled={state.audioEnabled}
+        canvas={canvas}
+        onToggleAudio={toggleAudio}
+        screens={{
+          nav: (
+            <NavScreen
+              activePlanetId={highlightedPlanetId}
+              onFlyHome={
+                state.view.type === "PLANET_DETAIL" ||
+                state.view.type === "MISSION"
                   ? () => dispatch({ type: "FLY_HOME" })
                   : undefined
-            }
-            title={dataScreen.title}
-          >
-            {dataScreen.content}
-          </DataScreen>
-        ),
-        companion,
-        status: (
-          <StatusBar
-            totalPlanets={PLANETS.length + 1}
-            view={state.view}
-            visitedCount={state.visitedPlanets.size}
-          />
-        ),
-      }}
-    />
+              }
+              onSelectPlanet={(planetId) =>
+                dispatch({ type: "FLY_TO_PLANET", planetId })
+              }
+              viewType={state.view.type}
+              visitedPlanets={state.visitedPlanets}
+            />
+          ),
+          data: (
+            <DataScreen
+              contentKey={`${state.view.type}:${activePlanetId ?? state.nearestPlanetId ?? "none"}`}
+              onBack={
+                state.view.type === "MISSION"
+                  ? () => dispatch({ type: "EXIT_MISSION" })
+                  : state.view.type === "PLANET_DETAIL"
+                    ? () => dispatch({ type: "FLY_HOME" })
+                    : undefined
+              }
+              title={dataScreen.title}
+            >
+              {dataScreen.content}
+            </DataScreen>
+          ),
+          companion,
+          status: (
+            <StatusBar
+              totalPlanets={PLANETS.length + 1}
+              view={state.view}
+              visitedCount={state.visitedPlanets.size}
+            />
+          ),
+        }}
+      />
+      {flightOverlays}
+    </>
   );
 }
 
