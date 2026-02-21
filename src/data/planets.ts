@@ -1,4 +1,6 @@
-﻿export type PlanetConfig = {
+import { OORT_CLOUD } from "./oortCloud";
+
+export type PlanetConfig = {
   id: string;
   label: string;
   subtitle: string;
@@ -13,6 +15,18 @@
   ringColor?: string;
   hasMission: boolean;
   companionGreeting: string;
+  moons?: MoonConfig[];
+};
+
+export type MoonConfig = {
+  id: string;
+  label: string;
+  subtitle: string;
+  color: string;
+  radius: number;
+  orbitRadius: number;
+  orbitSpeed: number;
+  orbitPhase: number;
 };
 
 export const PLANETS: PlanetConfig[] = [
@@ -79,24 +93,50 @@ export const PLANETS: PlanetConfig[] = [
     orbitPhase: 1,
     hasRings: false,
     hasMission: true,
+    moons: [
+      {
+        id: "early-career-tnt",
+        label: "T&T Power",
+        subtitle: "Full-Stack IoT & ERP",
+        color: "#34d399",
+        radius: 0.12,
+        orbitRadius: 1.2,
+        orbitSpeed: 0.4,
+        orbitPhase: 0,
+      },
+      {
+        id: "early-career-eramosa",
+        label: "Eramosa",
+        subtitle: "Enterprise Reporting",
+        color: "#6ee7b7",
+        radius: 0.1,
+        orbitRadius: 1.6,
+        orbitSpeed: 0.3,
+        orbitPhase: Math.PI / 2,
+      },
+      {
+        id: "early-career-ge",
+        label: "GE Digital",
+        subtitle: "Test Automation",
+        color: "#a7f3d0",
+        radius: 0.11,
+        orbitRadius: 1.9,
+        orbitSpeed: 0.25,
+        orbitPhase: Math.PI,
+      },
+      {
+        id: "early-career-revision",
+        label: "Revision Military",
+        subtitle: "Sensor Fusion",
+        color: "#d1fae5",
+        radius: 0.1,
+        orbitRadius: 2.2,
+        orbitSpeed: 0.2,
+        orbitPhase: (3 * Math.PI) / 2,
+      },
+    ],
     companionGreeting:
       "My early career - internships and first full-time roles. This is where I learned the fundamentals. The mission here covers a zero-downtime database migration I pulled off at T&T Power Group.",
-  },
-  {
-    id: "open-source",
-    label: "Open Source",
-    subtitle: "npm packages and side projects",
-    color: "#06b6d4",
-    emissive: "#0891b2",
-    radius: 0.45,
-    orbitRadius: 17,
-    orbitSpeed: 0.03,
-    orbitInclination: -0.1,
-    orbitPhase: 5.5,
-    hasRings: false,
-    hasMission: false,
-    companionGreeting:
-      "My side projects and open source work. I love building tools that other developers use. Ask me about any of these!",
   },
 ];
 
@@ -120,6 +160,23 @@ export const SUN_AS_ABOUT: PlanetConfig = {
 export function getPlanetById(planetId: string) {
   if (planetId === "about") {
     return SUN_AS_ABOUT;
+  }
+  if (planetId === "open-source") {
+    return {
+      id: OORT_CLOUD.id,
+      label: OORT_CLOUD.label,
+      subtitle: OORT_CLOUD.subtitle,
+      color: OORT_CLOUD.color,
+      emissive: OORT_CLOUD.emissive,
+      radius: 0.3,
+      orbitRadius: OORT_CLOUD.baseOrbitRadius,
+      orbitSpeed: 0,
+      orbitInclination: 0,
+      orbitPhase: 5.5,
+      hasRings: false,
+      hasMission: false,
+      companionGreeting: OORT_CLOUD.companionGreeting,
+    } as PlanetConfig;
   }
   return PLANETS.find((planet) => planet.id === planetId);
 }

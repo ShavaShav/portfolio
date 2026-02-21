@@ -37,6 +37,7 @@ export type AppState = {
   nearestPlanetId: string | null;
   companion: CompanionState;
   chatSessionId: string;
+  transmissionShownPlanets: Set<string>;
 };
 
 export type AppAction =
@@ -75,6 +76,7 @@ const initialState: AppState = {
     isTyping: false,
   },
   chatSessionId: createSessionId(),
+  transmissionShownPlanets: new Set<string>(),
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
