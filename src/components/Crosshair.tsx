@@ -9,8 +9,16 @@ export function Crosshair({ targetPlanetLabel }: CrosshairProps) {
   const hasTarget = !!targetPlanetLabel;
 
   return (
-    <div className={`crosshair ${hasTarget ? "crosshair--target" : ""}`} aria-hidden>
-      <svg className="crosshair__svg" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div
+      className={`crosshair ${hasTarget ? "crosshair--target" : ""}`}
+      aria-hidden
+    >
+      <svg
+        className="crosshair__svg"
+        viewBox="0 0 40 40"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         {/* Top arm */}
         <line x1="20" y1="2" x2="20" y2="12" strokeLinecap="round" />
         {/* Bottom arm */}
@@ -31,9 +39,7 @@ export function Crosshair({ targetPlanetLabel }: CrosshairProps) {
           </>
         )}
       </svg>
-      {hasTarget && (
-        <div className="crosshair__label">{targetPlanetLabel}</div>
-      )}
+      {hasTarget && <div className="crosshair__label">{targetPlanetLabel}</div>}
     </div>
   );
 }

@@ -90,6 +90,11 @@
 }
 
 @keyframes launch-btn-pulse {
-  0%, 100% { box-shadow: 0 0 12px rgba(0, 255, 136, 0.2); }
-  50% { box-shadow: 0 0 24px rgba(0, 255, 136, 0.45); }
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(0, 255, 136, 0.45);
+  }
 }

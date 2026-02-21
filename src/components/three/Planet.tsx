@@ -85,7 +85,9 @@ export function Planet({ planet, onSelect, visited = false }: PlanetProps) {
       {/* Visited glow ring */}
       {visited ? (
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[planet.radius * 1.55, planet.radius * 1.65, 48]} />
+          <ringGeometry
+            args={[planet.radius * 1.55, planet.radius * 1.65, 48]}
+          />
           <meshBasicMaterial
             color={planet.color}
             opacity={0.35}

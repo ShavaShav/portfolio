@@ -25,11 +25,16 @@ type FlightHintOverlayProps = {
   planetLabel?: string;
 };
 
-export function FlightHintOverlay({ lockedOn = false, planetLabel }: FlightHintOverlayProps) {
+export function FlightHintOverlay({
+  lockedOn = false,
+  planetLabel,
+}: FlightHintOverlayProps) {
   const hints = lockedOn ? LOCKED_ON_HINTS : FREE_FLIGHT_HINTS;
 
   return (
-    <div className={`flight-hint-overlay ${lockedOn ? "flight-hint-overlay--locked" : ""}`}>
+    <div
+      className={`flight-hint-overlay ${lockedOn ? "flight-hint-overlay--locked" : ""}`}
+    >
       {lockedOn && planetLabel ? (
         <div className="flight-hint-overlay__title">
           LOCKED: {planetLabel.toUpperCase()}
@@ -39,7 +44,10 @@ export function FlightHintOverlay({ lockedOn = false, planetLabel }: FlightHintO
       )}
       <ul className="flight-hint-overlay__list">
         {hints.map((hint) => (
-          <li className="flight-hint-overlay__row" key={hint.label + hint.keys.join()}>
+          <li
+            className="flight-hint-overlay__row"
+            key={hint.label + hint.keys.join()}
+          >
             <span className="flight-hint-overlay__keys">
               {hint.keys.map((k, i) => (
                 <span key={k}>

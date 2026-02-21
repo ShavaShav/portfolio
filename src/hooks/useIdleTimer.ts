@@ -16,7 +16,13 @@ export function useIdleState(idleMs: number = 30_000): boolean {
       timerRef.current = setTimeout(() => setIsIdle(true), idleMs);
     };
 
-    const events = ["mousemove", "mousedown", "keydown", "touchstart", "wheel"] as const;
+    const events = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "touchstart",
+      "wheel",
+    ] as const;
     events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
 
     reset();

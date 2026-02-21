@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useChat, type ChatMessage, type CompanionContext } from "../../hooks/useChat";
+import {
+  useChat,
+  type ChatMessage,
+  type CompanionContext,
+} from "../../hooks/useChat";
 import { getPlanetById } from "../../data/planets";
 import { getMissionForPlanet } from "../../data/missions";
 import { useAppState } from "../../state/AppState";
@@ -27,8 +31,7 @@ export function CompanionScreen({
   const isActive = mode === "active" || mode === "copilot";
   const powered = isActive;
 
-  const headerTitle =
-    mode === "copilot" ? "COPILOT MODE" : "COMPANION COMMS";
+  const headerTitle = mode === "copilot" ? "COPILOT MODE" : "COMPANION COMMS";
 
   // Auto-greeting when arriving at a planet
   useEffect(() => {
@@ -65,16 +68,17 @@ export function CompanionScreen({
     const mission =
       missionId && planetId ? getMissionForPlanet(planetId) : undefined;
 
-    const visitedLabels = Array.from(visitedPlanets)
-      .map((id) => {
-        if (id === "about") return "The Sun (About Me)";
-        return getPlanetById(id)?.label ?? id;
-      });
+    const visitedLabels = Array.from(visitedPlanets).map((id) => {
+      if (id === "about") return "The Sun (About Me)";
+      return getPlanetById(id)?.label ?? id;
+    });
 
     return {
       mode,
       currentPlanetId: planetId,
-      currentPlanetLabel: planet?.label ?? (planetId === "about" ? "The Sun (About Me)" : undefined),
+      currentPlanetLabel:
+        planet?.label ??
+        (planetId === "about" ? "The Sun (About Me)" : undefined),
       visitedPlanetLabels: visitedLabels,
       missionTitle: mission?.title,
       scenarioContext: mission?.scenario ?? mission?.title,

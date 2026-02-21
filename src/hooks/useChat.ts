@@ -69,10 +69,7 @@ export function useChat(sessionId: string) {
         let botContent = "";
 
         // Add empty assistant message that we'll stream into
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: "" },
-        ]);
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
         while (true) {
           const { done, value } = await reader.read();

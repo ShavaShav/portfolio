@@ -83,10 +83,18 @@
 }
 
 @keyframes boot-flicker {
-  0%   { opacity: 0; }
-  20%  { opacity: 1; }
-  80%  { opacity: 1; }
-  100% { opacity: 0.85; }
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.85;
+  }
 }
 
 .audio-toggle {
@@ -233,8 +241,12 @@
 }
 
 @keyframes scanline-sweep {
-  from { top: -60px; }
-  to   { top: 100%; }
+  from {
+    top: -60px;
+  }
+  to {
+    top: 100%;
+  }
 }
 
 .mini-system-map {

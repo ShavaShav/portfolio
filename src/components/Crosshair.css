@@ -17,7 +17,9 @@
   height: 40px;
   stroke: rgba(0, 255, 136, 0.7);
   stroke-width: 1.5;
-  transition: stroke 0.15s ease, filter 0.15s ease;
+  transition:
+    stroke 0.15s ease,
+    filter 0.15s ease;
   filter: drop-shadow(0 0 3px rgba(0, 255, 136, 0.4));
 }
 
@@ -38,6 +40,12 @@
 }
 
 @keyframes crosshair-label-fadein {
-  from { opacity: 0; transform: translateY(-3px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

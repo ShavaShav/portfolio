@@ -47,8 +47,8 @@ const CROSSHAIR_AIM_THRESHOLD = 0.994;
 
 // 6DoF flight tuning
 const THRUST_SPEED = 0.12;
-const STRAFE_SPEED = 0.10;
-const VERTICAL_SPEED = 0.10;
+const STRAFE_SPEED = 0.1;
+const VERTICAL_SPEED = 0.1;
 const ROLL_SPEED = 0.025;
 const MOUSE_SENSITIVITY = 0.0018;
 const PITCH_LIMIT = Math.PI * 0.48; // ~86 degrees
@@ -103,7 +103,9 @@ export function CameraController({
 
   // Stable refs to callbacks so pointer-lock event handlers don't go stale
   const onPlanetSelectRef = useRef<((id: string) => void) | null>(null);
-  const onPointerLockChangeRef = useRef<((locked: boolean) => void) | null>(null);
+  const onPointerLockChangeRef = useRef<((locked: boolean) => void) | null>(
+    null,
+  );
   useEffect(() => {
     onPlanetSelectRef.current = onSelectPlanet ?? null;
     onPointerLockChangeRef.current = onPointerLockChange ?? null;
@@ -162,9 +164,20 @@ export function CameraController({
       }
 
       const flightKeys = new Set([
-        "w", "s", "a", "d", "q", "e",
-        "shift", "control", " ", "c",
-        "arrowup", "arrowdown", "arrowleft", "arrowright",
+        "w",
+        "s",
+        "a",
+        "d",
+        "q",
+        "e",
+        "shift",
+        "control",
+        " ",
+        "c",
+        "arrowup",
+        "arrowdown",
+        "arrowleft",
+        "arrowright",
       ]);
 
       if (flightKeys.has(key)) {

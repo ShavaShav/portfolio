@@ -10,7 +10,9 @@ type PostProcessingProps = {
   reducedQuality?: boolean;
 };
 
-export function PostProcessing({ reducedQuality = false }: PostProcessingProps) {
+export function PostProcessing({
+  reducedQuality = false,
+}: PostProcessingProps) {
   if (reducedQuality) {
     return (
       <EffectComposer>

@@ -48,11 +48,7 @@ export function CompanionOrb({ active, isResponding }: CompanionOrbProps) {
   return (
     <mesh ref={meshRef} visible={false}>
       <sphereGeometry args={[ORB_RADIUS, 16, 16]} />
-      <meshBasicMaterial
-        color={ORB_COLOR}
-        opacity={0}
-        transparent
-      />
+      <meshBasicMaterial color={ORB_COLOR} opacity={0} transparent />
     </mesh>
   );
 }

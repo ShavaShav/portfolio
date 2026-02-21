@@ -225,7 +225,11 @@ class AudioManager {
     osc.stop(now + 2.0);
 
     // White noise burst
-    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.8, ctx.sampleRate);
+    const noiseBuffer = ctx.createBuffer(
+      1,
+      ctx.sampleRate * 0.8,
+      ctx.sampleRate,
+    );
     const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < noiseData.length; i++) {
       noiseData[i] = Math.random() * 2 - 1;

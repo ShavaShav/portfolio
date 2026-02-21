@@ -53,11 +53,7 @@ export function OverlaySheet({
       />
 
       {/* Sheet */}
-      <div
-        className="overlay-sheet"
-        ref={sheetRef}
-        style={{ height }}
-      >
+      <div className="overlay-sheet" ref={sheetRef} style={{ height }}>
         <div className="overlay-sheet__header">
           <span className="overlay-sheet__title">{title}</span>
           <button

@@ -144,14 +144,19 @@ function CockpitExperience() {
   const { state, dispatch } = useAppContext();
   const [isEntering, setIsEntering] = useState(true);
   const [isPointerLocked, setIsPointerLocked] = useState(false);
-  const [crosshairPlanetId, setCrosshairPlanetId] = useState<string | null>(null);
+  const [crosshairPlanetId, setCrosshairPlanetId] = useState<string | null>(
+    null,
+  );
   const { isMobile, qualityTier } = useDeviceCapability();
   const performanceTier = usePerformanceTier(qualityTier);
   const isLowQuality = performanceTier === "low";
 
   // Play whoosh when a fly-to starts
   useEffect(() => {
-    if (state.view.type === "FLYING_TO_PLANET" || state.view.type === "FLYING_HOME") {
+    if (
+      state.view.type === "FLYING_TO_PLANET" ||
+      state.view.type === "FLYING_HOME"
+    ) {
       audioManager.playTransition();
     }
   }, [state.view.type]);
@@ -162,9 +167,7 @@ function CockpitExperience() {
       : undefined;
 
   const flyingToPlanetId =
-    state.view.type === "FLYING_TO_PLANET"
-      ? state.view.planetId
-      : undefined;
+    state.view.type === "FLYING_TO_PLANET" ? state.view.planetId : undefined;
 
   const highlightedPlanetId =
     flyingToPlanetId ?? activePlanetId ?? state.nearestPlanetId ?? undefined;
@@ -184,7 +187,11 @@ function CockpitExperience() {
 
   const handlePlanetSelect = (planetId: string) => {
     if (isEntering) return;
-    if (state.view.type === "FLYING_TO_PLANET" || state.view.type === "FLYING_HOME") return;
+    if (
+      state.view.type === "FLYING_TO_PLANET" ||
+      state.view.type === "FLYING_HOME"
+    )
+      return;
     // If already locked onto this planet, do nothing
     if (activePlanetId === planetId) return;
     audioManager.playClick();
@@ -198,11 +205,12 @@ function CockpitExperience() {
   };
 
   const lockedPlanetLabel = activePlanetId
-    ? getPlanetById(activePlanetId)?.label ?? activePlanetId
+    ? (getPlanetById(activePlanetId)?.label ?? activePlanetId)
     : undefined;
 
   const crosshairPlanetLabel = crosshairPlanetId
-    ? getPlanetById(crosshairPlanetId)?.label ?? (crosshairPlanetId === "about" ? "About Me" : crosshairPlanetId)
+    ? (getPlanetById(crosshairPlanetId)?.label ??
+      (crosshairPlanetId === "about" ? "About Me" : crosshairPlanetId))
     : undefined;
 
   const showFlightHints =
@@ -239,35 +247,39 @@ function CockpitExperience() {
     />
   );
 
-  const flightOverlays = !isMobile && !isEntering ? (
-    <>
-      {isPointerLocked && <Crosshair targetPlanetLabel={crosshairPlanetLabel} />}
-      {showFlightHints && (
-        <FlightHintOverlay
-          lockedOn={!!activePlanetId}
-          planetLabel={lockedPlanetLabel}
-        />
-      )}
-    </>
-  ) : null;
+  const flightOverlays =
+    !isMobile && !isEntering ? (
+      <>
+        {isPointerLocked && (
+          <Crosshair targetPlanetLabel={crosshairPlanetLabel} />
+        )}
+        {showFlightHints && (
+          <FlightHintOverlay
+            lockedOn={!!activePlanetId}
+            planetLabel={lockedPlanetLabel}
+          />
+        )}
+      </>
+    ) : null;
 
   // Shared companion component
   const companion = (
     <CompanionScreen
       mode={companionMode}
-      missionId={state.view.type === "MISSION" ? state.view.missionId : undefined}
+      missionId={
+        state.view.type === "MISSION" ? state.view.missionId : undefined
+      }
       planetId={activePlanetId}
     />
   );
 
   // Mobile: Visor HUD
   if (isMobile) {
-    const mobileStatusText =
-      activePlanetId
-        ? activePlanetId.toUpperCase()
-        : flyingToPlanetId
-          ? `→ ${flyingToPlanetId.toUpperCase()}`
-          : "DIGITAL COSMOS";
+    const mobileStatusText = activePlanetId
+      ? activePlanetId.toUpperCase()
+      : flyingToPlanetId
+        ? `→ ${flyingToPlanetId.toUpperCase()}`
+        : "DIGITAL COSMOS";
 
     return (
       <VisorHUD

@@ -25,13 +25,24 @@ export function VisorHUD({
   dataTitle,
   companionContent,
 }: VisorHUDProps) {
-  const [openSheet, setOpenSheet] = useState<"map" | "data" | "ai" | null>(null);
+  const [openSheet, setOpenSheet] = useState<"map" | "data" | "ai" | null>(
+    null,
+  );
 
   const closeSheet = () => setOpenSheet(null);
 
-  const openMap = () => { audioManager.playClick(); setOpenSheet("map"); };
-  const openData = () => { audioManager.playClick(); setOpenSheet("data"); };
-  const openAI = () => { audioManager.playClick(); setOpenSheet("ai"); };
+  const openMap = () => {
+    audioManager.playClick();
+    setOpenSheet("map");
+  };
+  const openData = () => {
+    audioManager.playClick();
+    setOpenSheet("data");
+  };
+  const openAI = () => {
+    audioManager.playClick();
+    setOpenSheet("ai");
+  };
 
   return (
     <div className="visor-hud">

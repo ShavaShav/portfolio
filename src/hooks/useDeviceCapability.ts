@@ -27,9 +27,8 @@ export function getDeviceCapability(): DeviceCapability {
 import { useEffect, useState } from "react";
 
 export function useDeviceCapability(): DeviceCapability {
-  const [capability, setCapability] = useState<DeviceCapability>(
-    getDeviceCapability,
-  );
+  const [capability, setCapability] =
+    useState<DeviceCapability>(getDeviceCapability);
 
   useEffect(() => {
     const update = () => setCapability(getDeviceCapability());

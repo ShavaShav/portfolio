@@ -9,7 +9,7 @@ type Comet = {
   direction: Vector3;
   speed: number;
   progress: number; // 0→1 across scene
-  length: number;   // tail length in world units
+  length: number; // tail length in world units
 };
 
 const COMET_PARTICLE_COUNT = 50;
