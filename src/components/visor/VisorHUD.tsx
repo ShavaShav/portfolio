@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { audioManager } from "../../audio/AudioManager";
 import { AudioToggle } from "../ui/AudioToggle";
 import { OverlaySheet } from "../ui/OverlaySheet";
+import { TalkingHead } from "../ui/TalkingHead";
 import "./visor.css";
 
 type VisorHUDProps = {
@@ -13,6 +14,7 @@ type VisorHUDProps = {
   dataContent: ReactNode;
   dataTitle: string;
   companionContent: ReactNode;
+  companionTalking: boolean;
 };
 
 export function VisorHUD({
@@ -24,6 +26,7 @@ export function VisorHUD({
   dataContent,
   dataTitle,
   companionContent,
+  companionTalking,
 }: VisorHUDProps) {
   const [openSheet, setOpenSheet] = useState<"map" | "data" | "ai" | null>(
     null,
@@ -35,10 +38,12 @@ export function VisorHUD({
     audioManager.playClick();
     setOpenSheet("map");
   };
+
   const openData = () => {
     audioManager.playClick();
     setOpenSheet("data");
   };
+
   const openAI = () => {
     audioManager.playClick();
     setOpenSheet("ai");
@@ -46,17 +51,14 @@ export function VisorHUD({
 
   return (
     <div className="visor-hud">
-      {/* Top bar */}
       <header className="visor-hud__top">
         <div className="visor-hud__monogram">ZS</div>
         <span className="visor-hud__status">{statusText}</span>
         <AudioToggle enabled={audioEnabled} onToggle={onToggleAudio} />
       </header>
 
-      {/* Full-viewport canvas */}
       <div className="visor-hud__canvas">{canvas}</div>
 
-      {/* Bottom bar */}
       <footer className="visor-hud__bottom">
         <span className="visor-hud__telemetry">ORBIT STABLE</span>
         <div className="visor-hud__buttons">
@@ -84,7 +86,6 @@ export function VisorHUD({
         </div>
       </footer>
 
-      {/* Overlay sheets */}
       <OverlaySheet
         height="60%"
         isOpen={openSheet === "map"}
@@ -104,11 +105,16 @@ export function VisorHUD({
       </OverlaySheet>
 
       <OverlaySheet
-        height="70%"
+        height="85%"
         isOpen={openSheet === "ai"}
         onClose={closeSheet}
         title="SHIP AI"
       >
+        <TalkingHead
+          active={openSheet === "ai"}
+          isTalking={companionTalking}
+          mobile
+        />
         {companionContent}
       </OverlaySheet>
     </div>

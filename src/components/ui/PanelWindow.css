@@ -1,0 +1,67 @@
+.panel-window {
+  z-index: 4;
+}
+
+.panel-window__chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 8px;
+  background: rgba(18, 21, 30, 0.95);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+}
+
+.panel-window__drag-handle {
+  flex: 1;
+  cursor: grab;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.panel-window__title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(216, 255, 232, 0.7);
+  letter-spacing: 0.08em;
+  user-select: none;
+}
+
+.panel-window__minimize {
+  background: none;
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 4px;
+  color: #ceffe5;
+  font-size: 12px;
+  padding: 0 6px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  line-height: 1;
+  margin-left: 6px;
+}
+
+.panel-window__minimize:hover {
+  background: rgba(0, 255, 136, 0.15);
+}
+
+.panel-window__content {
+  height: calc(100% - 28px);
+  overflow: hidden;
+}
+
+.panel-window--minimized {
+  background: rgba(14, 19, 27, 0.9);
+  border: 1px solid rgba(0, 255, 136, 0.25);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  z-index: 4;
+  transition: background 0.15s ease;
+}
+
+.panel-window--minimized:hover {
+  background: rgba(0, 255, 136, 0.12);
+}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Group, Mesh } from "three";
 import { DoubleSide } from "three";
 import { getPlanetPositionAtTime, type PlanetConfig } from "../../data/planets";
+import { Moon } from "./Moon";
 
 type PlanetProps = {
   planet: PlanetConfig;
@@ -96,6 +97,10 @@ export function Planet({ planet, onSelect, visited = false }: PlanetProps) {
           />
         </mesh>
       ) : null}
+
+      {planet.moons?.map((moon) => (
+        <Moon key={moon.id} moon={moon} onSelect={() => onSelect(planet.id)} />
+      ))}
 
       <Html center distanceFactor={10} position={[0, planet.radius + 0.6, 0]}>
         <div

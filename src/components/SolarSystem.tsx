@@ -3,11 +3,12 @@ import { useCallback, type ReactNode } from "react";
 import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
+import { OORT_CLOUD } from "../data/oortCloud";
 import { AmbientParticles } from "./three/AmbientParticles";
 import { CameraController } from "./three/CameraController";
 import { CometSystem } from "./three/CometSystem";
-import { CompanionOrb } from "./three/CompanionOrb";
 import { OrbitLine } from "./three/OrbitLine";
+import { OortCloud } from "./three/OortCloud";
 import { Planet } from "./three/Planet";
 import { PostProcessing } from "./three/PostProcessing";
 import { Sun } from "./three/Sun";
@@ -30,8 +31,6 @@ type SolarSystemProps = {
   onEntranceComplete?: () => void;
   onNearestPlanetChange?: (planetId: string | null) => void;
   showHint?: boolean;
-  companionActive?: boolean;
-  companionResponding?: boolean;
   reducedQuality?: boolean;
   particleCount?: number;
   visitedPlanets?: Set<string>;
@@ -54,8 +53,6 @@ export function SolarSystem({
   onEntranceComplete,
   onNearestPlanetChange,
   showHint = true,
-  companionActive = false,
-  companionResponding = false,
   reducedQuality = false,
   particleCount = 200,
   visitedPlanets,
@@ -112,6 +109,9 @@ export function SolarSystem({
               />
             ))
           : null}
+        {showOrbitLines ? (
+          <OrbitLine inclination={-0.1} radius={OORT_CLOUD.baseOrbitRadius} />
+        ) : null}
 
         {PLANETS.map((planet) => (
           <Planet
@@ -122,9 +122,9 @@ export function SolarSystem({
           />
         ))}
 
-        <CompanionOrb
-          active={companionActive}
-          isResponding={companionResponding}
+        <OortCloud
+          onSelect={handlePlanetSelect}
+          visited={visitedPlanets?.has("open-source") ?? false}
         />
 
         <CometSystem />

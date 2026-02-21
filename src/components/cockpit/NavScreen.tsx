@@ -1,4 +1,5 @@
-﻿import { audioManager } from "../../audio/AudioManager";
+import { audioManager } from "../../audio/AudioManager";
+import { OORT_CLOUD } from "../../data/oortCloud";
 import { PLANETS } from "../../data/planets";
 import type { AppView } from "../../state/AppState";
 import { CockpitScreen } from "./CockpitScreen";
@@ -53,6 +54,17 @@ export function NavScreen({
             {visitedPlanets.has(planet.id) ? <small>visited</small> : null}
           </button>
         ))}
+        <button
+          className={`nav-screen__planet ${activePlanetId === "open-source" ? "is-active" : ""}`}
+          onClick={() => {
+            audioManager.playClick();
+            onSelectPlanet("open-source");
+          }}
+          type="button"
+        >
+          <span>{OORT_CLOUD.label}</span>
+          {visitedPlanets.has("open-source") ? <small>visited</small> : null}
+        </button>
       </div>
 
       {viewType !== "SOLAR_SYSTEM" && onFlyHome ? (

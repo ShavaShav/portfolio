@@ -2,6 +2,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import gsap from "gsap";
 import { useCallback, useEffect, useRef } from "react";
 import { Euler, MathUtils, Quaternion, Vector2, Vector3 } from "three";
+import { audioManager } from "../../audio/AudioManager";
 import { CAMERA_DEFAULT } from "../../data/cameraPositions";
 import {
   PLANETS,
@@ -100,6 +101,8 @@ export function CameraController({
 
   // Planet currently centered in the crosshair (pointer-locked free-flight)
   const crosshairPlanetRef = useRef<string | null>(null);
+  const canvasRef = useRef<HTMLElement | null>(null);
+  const isThrustingRef = useRef(false);
 
   // Stable refs to callbacks so pointer-lock event handlers don't go stale
   const onPlanetSelectRef = useRef<((id: string) => void) | null>(null);
@@ -114,10 +117,14 @@ export function CameraController({
   // ── Pointer lock ──────────────────────────────────────────────────────────
   useEffect(() => {
     const canvas = gl.domElement;
+    canvasRef.current = canvas;
 
     const onPointerLockChange = () => {
       const locked = document.pointerLockElement === canvas;
       isPointerLockedRef.current = locked;
+      if (locked) {
+        audioManager.playPointerLockEngage();
+      }
       onPointerLockChangeRef.current?.(locked);
     };
 
@@ -182,6 +189,9 @@ export function CameraController({
 
       if (flightKeys.has(key)) {
         event.preventDefault();
+        if (!isPointerLockedRef.current && canvasRef.current) {
+          canvasRef.current.requestPointerLock();
+        }
         keysRef.current.add(key);
 
         // Disengage from planet when user hits any flight key
@@ -219,6 +229,8 @@ export function CameraController({
     if (!isEntering || hasEnteredRef.current) return;
 
     hasEnteredRef.current = true;
+    audioManager.stopThrust();
+    isThrustingRef.current = false;
     flightActiveRef.current = false;
 
     camera.lookAt(0, 0, 0);
@@ -260,6 +272,8 @@ export function CameraController({
         activeFlightRef.current = "planet:about";
         flyingPlanetRef.current = null;
         activeTweenRef.current?.kill();
+        audioManager.stopThrust();
+        isThrustingRef.current = false;
         flightActiveRef.current = false;
 
         const cameraState = {
@@ -285,6 +299,7 @@ export function CameraController({
             _euler.setFromQuaternion(camera.quaternion, "YXZ");
             pitchRef.current = _euler.x;
             flyingPlanetRef.current = null;
+            document.exitPointerLock();
             onArrivePlanet?.("about");
           },
         });
@@ -298,6 +313,8 @@ export function CameraController({
       activeFlightRef.current = flightId;
       flyingPlanetRef.current = flyToPlanetId;
       activeTweenRef.current?.kill();
+      audioManager.stopThrust();
+      isThrustingRef.current = false;
       flightActiveRef.current = false;
 
       const startPos = {
@@ -344,6 +361,7 @@ export function CameraController({
           _euler.setFromQuaternion(camera.quaternion, "YXZ");
           pitchRef.current = _euler.x;
           flyingPlanetRef.current = null;
+          document.exitPointerLock();
           onArrivePlanet?.(flyToPlanetId);
         },
       });
@@ -355,6 +373,8 @@ export function CameraController({
       activeFlightRef.current = "home";
       flyingPlanetRef.current = null;
       activeTweenRef.current?.kill();
+      audioManager.stopThrust();
+      isThrustingRef.current = false;
       flightActiveRef.current = false;
 
       const cameraState = {
@@ -500,6 +520,28 @@ export function CameraController({
         camera.quaternion.premultiply(_deltaRot);
       }
 
+      const isThrusting =
+        keys.has("w") ||
+        keys.has("s") ||
+        keys.has("a") ||
+        keys.has("d") ||
+        keys.has("arrowup") ||
+        keys.has("arrowdown") ||
+        keys.has("arrowleft") ||
+        keys.has("arrowright") ||
+        keys.has("shift") ||
+        keys.has(" ") ||
+        keys.has("control") ||
+        keys.has("c");
+
+      if (isThrusting && !isThrustingRef.current) {
+        isThrustingRef.current = true;
+        audioManager.playThrust();
+      } else if (!isThrusting && isThrustingRef.current) {
+        isThrustingRef.current = false;
+        audioManager.stopThrust();
+      }
+
       // Crosshair planet detection (only when pointer-locked so aim matters)
       if (isPointerLockedRef.current) {
         camera.getWorldDirection(_cameraDir);
@@ -525,11 +567,17 @@ export function CameraController({
         if (crosshairId !== crosshairPlanetRef.current) {
           crosshairPlanetRef.current = crosshairId;
           onCrosshairPlanetChange?.(crosshairId);
+          if (crosshairId !== null) {
+            audioManager.playTargetLock();
+          }
         }
       } else if (crosshairPlanetRef.current !== null) {
         crosshairPlanetRef.current = null;
         onCrosshairPlanetChange?.(null);
       }
+    } else if (isThrustingRef.current) {
+      isThrustingRef.current = false;
+      audioManager.stopThrust();
     }
 
     // --- Idle auto-rotate (solar system free-flight only, no pointer lock) ---

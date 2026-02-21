@@ -6,7 +6,7 @@ import {
 } from "../../hooks/useChat";
 import { getPlanetById } from "../../data/planets";
 import { getMissionForPlanet } from "../../data/missions";
-import { useAppState } from "../../state/AppState";
+import { useAppDispatch, useAppState } from "../../state/AppState";
 import { CockpitScreen } from "./CockpitScreen";
 
 type CompanionScreenProps = {
@@ -21,6 +21,7 @@ export function CompanionScreen({
   missionId,
 }: CompanionScreenProps) {
   const { chatSessionId, visitedPlanets } = useAppState();
+  const dispatch = useAppDispatch();
   const { messages, sendMessage, addMessage, isLoading, retry } =
     useChat(chatSessionId);
   const [inputValue, setInputValue] = useState("");
@@ -62,6 +63,10 @@ export function CompanionScreen({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    dispatch({ type: "COMPANION_SET_TYPING", isTyping: isLoading });
+  }, [isLoading, dispatch]);
 
   function buildContext(): CompanionContext {
     const planet = planetId ? getPlanetById(planetId) : undefined;

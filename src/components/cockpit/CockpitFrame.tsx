@@ -14,12 +14,14 @@ type CockpitFrameProps = {
   audioEnabled: boolean;
   onToggleAudio: () => void;
   booted: boolean;
+  onResetLayout?: () => void;
 };
 
 export function CockpitFrame({
   audioEnabled,
   onToggleAudio,
   booted,
+  onResetLayout,
 }: CockpitFrameProps) {
   const [bootText, setBootText] = useState<string | null>(null);
   const hasBootedRef = useRef(false);
@@ -54,6 +56,15 @@ export function CockpitFrame({
       ) : null}
 
       <div className="cockpit-frame__controls">
+        {onResetLayout ? (
+          <button
+            className="cockpit-frame__reset"
+            onClick={onResetLayout}
+            type="button"
+          >
+            RESET
+          </button>
+        ) : null}
         <AudioToggle enabled={audioEnabled} onToggle={onToggleAudio} />
         <SocialLinks />
       </div>

@@ -108,6 +108,23 @@
   cursor: pointer;
 }
 
+.cockpit-frame__reset {
+  border: 1px solid rgba(228, 236, 255, 0.28);
+  background: transparent;
+  color: rgba(228, 236, 255, 0.6);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.cockpit-frame__reset:hover {
+  background: rgba(228, 236, 255, 0.1);
+  color: #f5f8ff;
+}
+
 .social-links {
   display: flex;
   gap: 8px;
@@ -121,38 +138,6 @@
   padding: 5px 8px;
   font-size: 10px;
   letter-spacing: 0.08em;
-}
-
-.cockpit-layout__nav {
-  top: 92px;
-  left: 14px;
-  width: 250px;
-  height: calc(100vh - 280px);
-  transform: translateX(-26px);
-}
-
-.cockpit-layout__data {
-  top: 92px;
-  right: 14px;
-  width: 390px;
-  height: calc(100vh - 280px);
-  transform: translateX(26px);
-}
-
-.cockpit-layout__companion {
-  left: 14px;
-  bottom: 14px;
-  width: 390px;
-  height: 220px;
-  transform: translateY(26px);
-}
-
-.cockpit-layout__status {
-  right: 14px;
-  bottom: 14px;
-  width: 390px;
-  height: 165px;
-  transform: translateY(26px);
 }
 
 .cockpit-screen {
@@ -257,7 +242,7 @@
 
 .mini-system-map svg {
   width: 100%;
-  max-width: 210px;
+  max-width: 250px;
   aspect-ratio: 1;
 }
 
@@ -607,31 +592,50 @@
   gap: 8px;
 }
 
-@media (max-width: 1200px) {
-  .cockpit-layout__nav {
-    width: 220px;
+@media (max-width: 768px) {
+  .companion-screen__message {
+    font-size: 14px;
+    line-height: 1.5;
+    gap: 8px;
   }
 
-  .cockpit-layout__data,
-  .cockpit-layout__companion,
-  .cockpit-layout__status {
-    width: 330px;
-  }
-}
-
-@media (max-width: 980px) {
-  .cockpit-layout__nav,
-  .cockpit-layout__companion,
-  .cockpit-layout__status {
-    display: none;
+  .companion-screen__messages {
+    gap: 10px;
+    padding-bottom: 8px;
   }
 
-  .cockpit-layout__data {
-    top: auto;
-    bottom: 12px;
-    right: 12px;
-    left: 12px;
-    width: auto;
-    height: 42vh;
+  .companion-screen__text {
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+
+  .companion-screen__badge {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .companion-screen__input {
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .companion-screen__input input {
+    font-size: 14px;
+    padding: 10px 12px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .companion-screen__input button {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 16px;
+    padding: 8px 14px;
+  }
+
+  .companion-screen__typing span {
+    width: 7px;
+    height: 7px;
   }
 }

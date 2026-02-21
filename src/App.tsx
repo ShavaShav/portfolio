@@ -13,8 +13,10 @@ import { DataScreen } from "./components/cockpit/DataScreen";
 import { MiniSystemMap } from "./components/cockpit/MiniSystemMap";
 import { NavScreen } from "./components/cockpit/NavScreen";
 import { StatusBar } from "./components/cockpit/StatusBar";
+import { TalkingHead } from "./components/ui/TalkingHead";
 import { VisorHUD } from "./components/visor/VisorHUD";
 import { getMissionForPlanet } from "./data/missions";
+import { OORT_CLOUD } from "./data/oortCloud";
 import { getPlanetContent } from "./data/planetContent";
 import { PLANETS, getPlanetById } from "./data/planets";
 import { useDeviceCapability } from "./hooks/useDeviceCapability";
@@ -83,6 +85,16 @@ function renderDataContent(
                   </button>
                 </li>
               ))}
+              <li key="open-source">
+                <button
+                  onClick={() =>
+                    dispatch({ type: "FLY_TO_PLANET", planetId: "open-source" })
+                  }
+                  type="button"
+                >
+                  {OORT_CLOUD.label} - {OORT_CLOUD.subtitle}
+                </button>
+              </li>
             </ul>
           </div>
         ),
@@ -237,7 +249,6 @@ function CockpitExperience() {
       onPlanetSelect={handlePlanetSelect}
       onCrosshairPlanetChange={setCrosshairPlanetId}
       onPointerLockChange={setIsPointerLocked}
-      companionActive={companionMode !== "standby"}
       showHint={false}
       showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
       visitedPlanets={state.visitedPlanets}
@@ -300,6 +311,7 @@ function CockpitExperience() {
         }
         onToggleAudio={toggleAudio}
         statusText={mobileStatusText}
+        companionTalking={state.companion.isTyping}
       />
     );
   }
@@ -346,7 +358,7 @@ function CockpitExperience() {
           companion,
           status: (
             <StatusBar
-              totalPlanets={PLANETS.length + 1}
+              totalPlanets={PLANETS.length + 2}
               view={state.view}
               visitedCount={state.visitedPlanets.size}
             />
@@ -354,6 +366,10 @@ function CockpitExperience() {
         }}
       />
       {flightOverlays}
+      <TalkingHead
+        active={companionMode !== "standby"}
+        isTalking={state.companion.isTyping}
+      />
     </>
   );
 }
