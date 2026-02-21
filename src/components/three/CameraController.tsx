@@ -557,6 +557,18 @@ export function CameraController({
             crosshairId = planet.id;
           }
         }
+
+        const oortCloud = getPlanetById("open-source");
+        if (oortCloud) {
+          const pos = getPlanetPositionAtTime(oortCloud, elapsed);
+          _toPlanet.set(pos.x, pos.y, pos.z).sub(camera.position).normalize();
+          const dot = _cameraDir.dot(_toPlanet);
+          if (dot > bestDot) {
+            bestDot = dot;
+            crosshairId = oortCloud.id;
+          }
+        }
+
         // Check Sun too
         _toPlanet.set(0, 0, 0).sub(camera.position).normalize();
         const sunDot = _cameraDir.dot(_toPlanet);
@@ -625,6 +637,29 @@ export function CameraController({
         if (score < closestScore) {
           closestScore = score;
           closestId = planet.id;
+        }
+      }
+
+      const oortCloud = getPlanetById("open-source");
+      if (oortCloud) {
+        const pos = getPlanetPositionAtTime(oortCloud, elapsed);
+        _toPlanet.set(pos.x, pos.y, pos.z).sub(camera.position);
+        const distance = _toPlanet.length();
+
+        const threshold =
+          PROXIMITY_BASE_THRESHOLD *
+          Math.max(oortCloud.orbitRadius / 10, 0.5) *
+          (nearestRef.current === oortCloud.id ? HYSTERESIS_MULTIPLIER : 1);
+
+        if (distance <= threshold) {
+          const dot = _cameraDir.dot(_toPlanet.normalize());
+          if (dot >= AIM_THRESHOLD) {
+            const score = distance * (1 - dot);
+            if (score < closestScore) {
+              closestScore = score;
+              closestId = oortCloud.id;
+            }
+          }
         }
       }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import { audioManager } from "./audio/AudioManager";
 import { Crosshair } from "./components/Crosshair";
@@ -14,6 +14,7 @@ import { MiniSystemMap } from "./components/cockpit/MiniSystemMap";
 import { NavScreen } from "./components/cockpit/NavScreen";
 import { StatusBar } from "./components/cockpit/StatusBar";
 import { TalkingHead } from "./components/ui/TalkingHead";
+import { TransmissionOverlay } from "./components/ui/TransmissionOverlay";
 import { VisorHUD } from "./components/visor/VisorHUD";
 import { getMissionForPlanet } from "./data/missions";
 import { OORT_CLOUD } from "./data/oortCloud";
@@ -29,7 +30,6 @@ function renderDataContent(
 ) {
   switch (state.view.type) {
     case "SOLAR_SYSTEM": {
-      // If proximity detection found a nearby planet, show preview
       if (state.nearestPlanetId) {
         const nearestPlanet = getPlanetById(state.nearestPlanetId);
         const nearestContent = getPlanetContent(state.nearestPlanetId);
@@ -159,17 +159,23 @@ function CockpitExperience() {
   const [crosshairPlanetId, setCrosshairPlanetId] = useState<string | null>(
     null,
   );
+  const [showTransmission, setShowTransmission] = useState(false);
   const { isMobile, qualityTier } = useDeviceCapability();
   const performanceTier = usePerformanceTier(qualityTier);
   const isLowQuality = performanceTier === "low";
 
-  // Play whoosh when a fly-to starts
   useEffect(() => {
     if (
       state.view.type === "FLYING_TO_PLANET" ||
       state.view.type === "FLYING_HOME"
     ) {
       audioManager.playTransition();
+    }
+  }, [state.view.type]);
+
+  useEffect(() => {
+    if (state.view.type === "MISSION") {
+      audioManager.playMissionStart();
     }
   }, [state.view.type]);
 
@@ -191,6 +197,26 @@ function CockpitExperience() {
       : state.view.type === "PLANET_DETAIL"
         ? "active"
         : "standby";
+  const transmissionShownRef = useRef<Set<string>>(new Set());
+  const prevCompanionModeRef = useRef(companionMode);
+
+  useEffect(() => {
+    const previousMode = prevCompanionModeRef.current;
+    prevCompanionModeRef.current = companionMode;
+
+    if (
+      previousMode === "standby" &&
+      companionMode !== "standby" &&
+      activePlanetId
+    ) {
+      if (!transmissionShownRef.current.has(activePlanetId)) {
+        transmissionShownRef.current.add(activePlanetId);
+        setShowTransmission(true);
+      } else {
+        audioManager.playCommBeep();
+      }
+    }
+  }, [activePlanetId, companionMode]);
 
   const toggleAudio = () => {
     dispatch({ type: "TOGGLE_AUDIO" });
@@ -204,8 +230,9 @@ function CockpitExperience() {
       state.view.type === "FLYING_HOME"
     )
       return;
-    // If already locked onto this planet, do nothing
     if (activePlanetId === planetId) return;
+
+    document.exitPointerLock();
     audioManager.playClick();
     dispatch({ type: "FLY_TO_PLANET", planetId });
   };
@@ -230,7 +257,6 @@ function CockpitExperience() {
     !isEntering &&
     (state.view.type === "SOLAR_SYSTEM" || state.view.type === "PLANET_DETAIL");
 
-  // Shared canvas for both desktop and mobile
   const canvas = (
     <SolarSystem
       activePlanetId={activePlanetId}
@@ -238,9 +264,10 @@ function CockpitExperience() {
       isEntering={isEntering}
       isFlyingHome={state.view.type === "FLYING_HOME"}
       onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
-      onArrivePlanet={(planetId) =>
-        dispatch({ type: "ARRIVE_AT_PLANET", planetId })
-      }
+      onArrivePlanet={(planetId) => {
+        audioManager.playArrivalChime();
+        dispatch({ type: "ARRIVE_AT_PLANET", planetId });
+      }}
       onDisengagePlanet={handleDisengagePlanet}
       onEntranceComplete={() => setIsEntering(false)}
       onNearestPlanetChange={(planetId) =>
@@ -261,19 +288,18 @@ function CockpitExperience() {
   const flightOverlays =
     !isMobile && !isEntering ? (
       <>
-        {isPointerLocked && (
+        {isPointerLocked ? (
           <Crosshair targetPlanetLabel={crosshairPlanetLabel} />
-        )}
-        {showFlightHints && (
+        ) : null}
+        {showFlightHints ? (
           <FlightHintOverlay
             lockedOn={!!activePlanetId}
             planetLabel={lockedPlanetLabel}
           />
-        )}
+        ) : null}
       </>
     ) : null;
 
-  // Shared companion component
   const companion = (
     <CompanionScreen
       mode={companionMode}
@@ -284,12 +310,11 @@ function CockpitExperience() {
     />
   );
 
-  // Mobile: Visor HUD
   if (isMobile) {
     const mobileStatusText = activePlanetId
       ? activePlanetId.toUpperCase()
       : flyingToPlanetId
-        ? `→ ${flyingToPlanetId.toUpperCase()}`
+        ? `-> ${flyingToPlanetId.toUpperCase()}`
         : "DIGITAL COSMOS";
 
     return (
@@ -297,6 +322,7 @@ function CockpitExperience() {
         audioEnabled={state.audioEnabled}
         canvas={canvas}
         companionContent={companion}
+        companionTalking={state.companion.isTyping}
         dataContent={dataScreen.content}
         dataTitle={dataScreen.title}
         mapContent={
@@ -311,12 +337,10 @@ function CockpitExperience() {
         }
         onToggleAudio={toggleAudio}
         statusText={mobileStatusText}
-        companionTalking={state.companion.isTyping}
       />
     );
   }
 
-  // Desktop: full cockpit layout
   return (
     <>
       <CockpitLayout
@@ -369,6 +393,10 @@ function CockpitExperience() {
       <TalkingHead
         active={companionMode !== "standby"}
         isTalking={state.companion.isTyping}
+      />
+      <TransmissionOverlay
+        active={showTransmission}
+        onComplete={() => setShowTransmission(false)}
       />
     </>
   );

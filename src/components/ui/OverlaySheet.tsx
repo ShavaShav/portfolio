@@ -5,7 +5,7 @@ import "./OverlaySheet.css";
 type OverlaySheetProps = {
   isOpen: boolean;
   onClose: () => void;
-  height: "60%" | "70%" | "100%";
+  height: "60%" | "70%" | "85%" | "100%";
   title: string;
   children: ReactNode;
 };
