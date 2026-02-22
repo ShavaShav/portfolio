@@ -31,7 +31,8 @@ export function CockpitLayout({
   onToggleAudio,
 }: CockpitLayoutProps) {
   const [booted, setBooted] = useState(false);
-  const { layouts, updatePanel, resetLayout, toggleMinimize } = usePanelLayout();
+  const { layouts, updatePanel, resetLayout, toggleMinimize } =
+    usePanelLayout();
 
   useEffect(() => {
     const rafId = window.requestAnimationFrame(() => setBooted(true));

@@ -114,7 +114,10 @@ export function MiniSystemMap({
           );
         })}
 
-        <g onClick={() => onSelectPlanet("open-source")} style={{ cursor: "pointer" }}>
+        <g
+          onClick={() => onSelectPlanet("open-source")}
+          style={{ cursor: "pointer" }}
+        >
           {[0, 0.4, 0.8, 1.2, 1.6].map((offset, i) => {
             const angle = 5.5 + offset * 0.3;
             const r = OORT_CLOUD.baseOrbitRadius * ORBIT_SCALE;

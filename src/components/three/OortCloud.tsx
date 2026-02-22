@@ -61,8 +61,11 @@ export function OortCloud({ onSelect, visited = false }: OortCloudProps) {
           yOffset,
           radiusOffset * Math.sin(angle),
         ),
-        rotationAxis: new Vector3(seed1 - 0.5, seed2 - 0.5, seed3 - 0.5)
-          .normalize(),
+        rotationAxis: new Vector3(
+          seed1 - 0.5,
+          seed2 - 0.5,
+          seed3 - 0.5,
+        ).normalize(),
         rotationSpeed: 0.2 + seed3 * 0.5,
         size: asteroid.size,
         color: asteroid.color,
@@ -77,7 +80,10 @@ export function OortCloud({ onSelect, visited = false }: OortCloudProps) {
     asteroids.forEach((asteroid) => {
       const mesh = meshRefs.current.get(asteroid.id);
       if (mesh) {
-        mesh.rotateOnAxis(asteroid.rotationAxis, asteroid.rotationSpeed * delta);
+        mesh.rotateOnAxis(
+          asteroid.rotationAxis,
+          asteroid.rotationSpeed * delta,
+        );
       }
     });
   });
@@ -125,7 +131,11 @@ export function OortCloud({ onSelect, visited = false }: OortCloudProps) {
             />
           </mesh>
           {hoveredId === asteroid.id ? (
-            <Html center distanceFactor={10} position={[0, asteroid.size + 0.3, 0]}>
+            <Html
+              center
+              distanceFactor={10}
+              position={[0, asteroid.size + 0.3, 0]}
+            >
               <div className="planet-label planet-label--active">
                 <strong>{asteroid.label}</strong>
               </div>
