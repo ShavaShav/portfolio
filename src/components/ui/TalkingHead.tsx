@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import "./TalkingHead.css";
 
 type TalkingHeadProps = {
@@ -96,9 +96,7 @@ export function TalkingHead({
     setRandomRotate(Math.random() * 30 - 15);
   };
 
-  if (!active) return null;
-
-  const posClass = useMemo(() => {
+  const posClass = (() => {
     if (mobile) {
       return "talking-head__wrapper--mobile";
     }
@@ -109,7 +107,9 @@ export function TalkingHead({
       return "talking-head__wrapper--right";
     }
     return `talking-head__wrapper--${resolvedDock}`;
-  }, [mobile, position, resolvedDock]);
+  })();
+
+  if (!active) return null;
 
   const wrapperClasses = [
     "talking-head__wrapper",
