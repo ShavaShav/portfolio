@@ -52,9 +52,9 @@ class AudioManager {
     this.stopThrust();
   }
 
-  // Ambient space atmosphere
-  // Layered: filtered noise "hull hum" + high shimmer + subtle harmonic pad.
-  // No sub-bass (<100Hz) to avoid nausea.
+  // Ambient ship atmosphere
+  // Layered: low-mid hull hum + subtle vent texture + gentle harmonic drone.
+  // Keep very little extreme highs to avoid fatigue over long sessions.
   playAmbient(): void {
     if (this.ambientGain) return;
 
@@ -65,14 +65,21 @@ class AudioManager {
     this.ambientGain.gain.value = 0;
     this.ambientGain.connect(this.masterGain);
 
-    // High-pass filter to remove sub-bass.
+    // Shape the spectrum into a calm cockpit band.
     const highpass = ctx.createBiquadFilter();
     highpass.type = "highpass";
-    highpass.frequency.value = 100;
-    highpass.connect(this.ambientGain);
-    this.ambientNodes.push(highpass);
+    highpass.frequency.value = 55;
 
-    // Layer 1: filtered noise texture.
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.value = 1200;
+    lowpass.Q.value = 0.45;
+
+    highpass.connect(lowpass);
+    lowpass.connect(this.ambientGain);
+    this.ambientNodes.push(highpass, lowpass);
+
+    // Layer 1: hull/engine bed.
     const noiseLen = ctx.sampleRate * 4;
     const noiseBuffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
@@ -86,66 +93,81 @@ class AudioManager {
 
     const noiseBand = ctx.createBiquadFilter();
     noiseBand.type = "bandpass";
-    noiseBand.frequency.value = 450;
-    noiseBand.Q.value = 0.5;
+    noiseBand.frequency.value = 180;
+    noiseBand.Q.value = 0.7;
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.07;
+    noiseGain.gain.value = 0.06;
 
+    const noiseLfo = ctx.createOscillator();
+    noiseLfo.type = "sine";
+    noiseLfo.frequency.value = 0.06;
+    const noiseLfoGain = ctx.createGain();
+    noiseLfoGain.gain.value = 55;
+
+    noiseLfo.connect(noiseLfoGain);
+    noiseLfoGain.connect(noiseBand.frequency);
     noiseSrc.connect(noiseBand);
     noiseBand.connect(noiseGain);
     noiseGain.connect(highpass);
     noiseSrc.start();
-    this.ambientSources.push(noiseSrc);
-    this.ambientNodes.push(noiseBand, noiseGain);
+    noiseLfo.start();
+    this.ambientSources.push(noiseSrc, noiseLfo);
+    this.ambientNodes.push(noiseBand, noiseGain, noiseLfoGain);
 
-    // Layer 2: high shimmer with slow LFO.
-    const shimmer = ctx.createOscillator();
-    shimmer.type = "sine";
-    shimmer.frequency.value = 2200;
+    // Layer 2: soft filtered vent noise.
+    const ventSrc = ctx.createBufferSource();
+    ventSrc.buffer = noiseBuffer;
+    ventSrc.loop = true;
 
-    const shimmerGain = ctx.createGain();
-    shimmerGain.gain.value = 0.025;
+    const ventBand = ctx.createBiquadFilter();
+    ventBand.type = "bandpass";
+    ventBand.frequency.value = 520;
+    ventBand.Q.value = 1.1;
 
-    const shimmerLfo = ctx.createOscillator();
-    shimmerLfo.frequency.value = 0.12;
+    const ventGain = ctx.createGain();
+    ventGain.gain.value = 0.016;
 
-    const shimmerLfoGain = ctx.createGain();
-    shimmerLfoGain.gain.value = 0.015;
+    const ventLfo = ctx.createOscillator();
+    ventLfo.type = "triangle";
+    ventLfo.frequency.value = 0.09;
+    const ventLfoGain = ctx.createGain();
+    ventLfoGain.gain.value = 80;
 
-    shimmerLfo.connect(shimmerLfoGain);
-    shimmerLfoGain.connect(shimmerGain.gain);
-    shimmer.connect(shimmerGain);
-    shimmerGain.connect(highpass);
+    ventLfo.connect(ventLfoGain);
+    ventLfoGain.connect(ventBand.frequency);
+    ventSrc.connect(ventBand);
+    ventBand.connect(ventGain);
+    ventGain.connect(highpass);
 
-    shimmer.start();
-    shimmerLfo.start();
+    ventSrc.start();
+    ventLfo.start();
 
-    this.ambientSources.push(shimmer, shimmerLfo);
-    this.ambientNodes.push(shimmerGain, shimmerLfoGain);
+    this.ambientSources.push(ventSrc, ventLfo);
+    this.ambientNodes.push(ventBand, ventGain, ventLfoGain);
 
-    // Layer 3: harmonic pad A3 + E4 with slow filter sweep.
+    // Layer 3: harmonic bed (low-mid) with tiny movement.
     const padA = ctx.createOscillator();
-    padA.type = "triangle";
-    padA.frequency.value = 220;
+    padA.type = "sine";
+    padA.frequency.value = 98;
 
     const padE = ctx.createOscillator();
     padE.type = "triangle";
-    padE.frequency.value = 330;
+    padE.frequency.value = 147;
 
     const padGain = ctx.createGain();
-    padGain.gain.value = 0.035;
+    padGain.gain.value = 0.03;
 
     const padFilter = ctx.createBiquadFilter();
     padFilter.type = "lowpass";
-    padFilter.frequency.value = 600;
-    padFilter.Q.value = 0.7;
+    padFilter.frequency.value = 420;
+    padFilter.Q.value = 0.5;
 
     const padLfo = ctx.createOscillator();
-    padLfo.frequency.value = 0.05;
+    padLfo.frequency.value = 0.04;
 
     const padLfoGain = ctx.createGain();
-    padLfoGain.gain.value = 200;
+    padLfoGain.gain.value = 110;
 
     padLfo.connect(padLfoGain);
     padLfoGain.connect(padFilter.frequency);
@@ -161,7 +183,7 @@ class AudioManager {
     this.ambientSources.push(padA, padE, padLfo);
     this.ambientNodes.push(padFilter, padGain, padLfoGain);
 
-    this.ambientGain.gain.setTargetAtTime(0.35, ctx.currentTime, 2.0);
+    this.ambientGain.gain.setTargetAtTime(0.28, ctx.currentTime, 2.4);
   }
 
   private stopAmbient(): void {
