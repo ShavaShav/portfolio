@@ -160,6 +160,8 @@ function CockpitExperience() {
     null,
   );
   const [showTransmission, setShowTransmission] = useState(false);
+  const [headVisible, setHeadVisible] = useState(false);
+  const headOpenedRef = useRef(false);
   const { isMobile, qualityTier } = useDeviceCapability();
   const performanceTier = usePerformanceTier(qualityTier);
   const isLowQuality = performanceTier === "low";
@@ -217,6 +219,14 @@ function CockpitExperience() {
       }
     }
   }, [activePlanetId, companionMode]);
+
+  // Auto-open talking head when companion first becomes active
+  useEffect(() => {
+    if (companionMode !== "standby" && !headOpenedRef.current) {
+      headOpenedRef.current = true;
+      setHeadVisible(true);
+    }
+  }, [companionMode]);
 
   const toggleAudio = () => {
     dispatch({ type: "TOGGLE_AUDIO" });
@@ -301,15 +311,8 @@ function CockpitExperience() {
       </>
     ) : null;
 
-  const companion = (
-    <CompanionScreen
-      mode={companionMode}
-      missionId={
-        state.view.type === "MISSION" ? state.view.missionId : undefined
-      }
-      planetId={activePlanetId}
-    />
-  );
+  const companionMissionId =
+    state.view.type === "MISSION" ? state.view.missionId : undefined;
 
   if (isMobile) {
     const mobileStatusText = activePlanetId
@@ -322,7 +325,13 @@ function CockpitExperience() {
       <VisorHUD
         audioEnabled={state.audioEnabled}
         canvas={canvas}
-        companionContent={companion}
+        companionContent={
+          <CompanionScreen
+            mode={companionMode}
+            missionId={companionMissionId}
+            planetId={activePlanetId}
+          />
+        }
         companionTalking={state.companion.isTyping}
         dataContent={dataScreen.content}
         dataTitle={dataScreen.title}
@@ -355,6 +364,16 @@ function CockpitExperience() {
         panelPowered={{
           companion: companionMode !== "standby",
         }}
+        panelPopouts={{
+          companion: headVisible ? (
+            <TalkingHead
+              active={companionMode !== "standby"}
+              isTalking={state.companion.isTyping}
+              position="side"
+              onClose={() => setHeadVisible(false)}
+            />
+          ) : undefined,
+        }}
         screens={{
           nav: (
             <NavScreen
@@ -386,7 +405,13 @@ function CockpitExperience() {
               {dataScreen.content}
             </DataScreen>
           ),
-          companion,
+          companion: (
+            <CompanionScreen
+              mode={companionMode}
+              missionId={companionMissionId}
+              planetId={activePlanetId}
+            />
+          ),
           status: (
             <StatusBar
               totalPlanets={PLANETS.length + 2}
@@ -397,10 +422,6 @@ function CockpitExperience() {
         }}
       />
       {flightOverlays}
-      <TalkingHead
-        active={companionMode !== "standby"}
-        isTalking={state.companion.isTyping}
-      />
       <TransmissionOverlay
         active={showTransmission}
         onComplete={() => setShowTransmission(false)}

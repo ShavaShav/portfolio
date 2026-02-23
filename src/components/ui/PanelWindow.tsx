@@ -13,6 +13,8 @@ type PanelWindowProps = {
   minHeight?: number;
   isMinimized: boolean;
   powered?: boolean;
+  /** Content rendered outside overflow-hidden, can extend beyond panel bounds */
+  popout?: ReactNode;
   onMinimize: () => void;
   onDragStop: (x: number, y: number) => void;
   onResizeStop: (width: number, height: number, x: number, y: number) => void;
@@ -29,6 +31,7 @@ export function PanelWindow({
   minHeight = 120,
   isMinimized,
   powered = true,
+  popout,
   onMinimize,
   onDragStop,
   onResizeStop,
@@ -85,6 +88,7 @@ export function PanelWindow({
         </button>
       </div>
       <div className="panel-window__content">{children}</div>
+      {popout}
     </Rnd>
   );
 }

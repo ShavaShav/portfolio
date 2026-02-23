@@ -15,6 +15,7 @@ type CockpitLayoutProps = {
   };
   panelTitles?: Partial<Record<PanelId, string>>;
   panelPowered?: Partial<Record<PanelId, boolean>>;
+  panelPopouts?: Partial<Record<PanelId, ReactNode>>;
   audioEnabled: boolean;
   onToggleAudio: () => void;
 };
@@ -31,6 +32,7 @@ export function CockpitLayout({
   screens,
   panelTitles,
   panelPowered,
+  panelPopouts,
   audioEnabled,
   onToggleAudio,
 }: CockpitLayoutProps) {
@@ -47,6 +49,7 @@ export function CockpitLayout({
     <PanelWindow
       title={panelTitles?.[panelId] ?? DEFAULT_PANEL_TITLES[panelId]}
       powered={panelPowered?.[panelId] ?? true}
+      popout={panelPopouts?.[panelId]}
       x={layouts[panelId].x}
       y={layouts[panelId].y}
       width={layouts[panelId].width}

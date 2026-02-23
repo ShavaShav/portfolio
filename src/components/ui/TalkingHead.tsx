@@ -5,12 +5,16 @@ type TalkingHeadProps = {
   isTalking: boolean;
   active: boolean;
   mobile?: boolean;
+  position?: "side" | "top";
+  onClose?: () => void;
 };
 
 export function TalkingHead({
   isTalking,
   active,
   mobile = false,
+  position = "side",
+  onClose,
 }: TalkingHeadProps) {
   const [randomTranslate, setRandomTranslate] = useState(0);
   const [randomRotate, setRandomRotate] = useState(0);
@@ -42,9 +46,13 @@ export function TalkingHead({
 
   if (!active) return null;
 
+  const posClass = mobile
+    ? "talking-head__wrapper--mobile"
+    : `talking-head__wrapper--${position}`;
+
   const wrapperClasses = [
     "talking-head__wrapper",
-    mobile ? "talking-head__wrapper--mobile" : "",
+    posClass,
     isTalking || isFlipped ? "talking-head--flipped" : "",
   ]
     .filter(Boolean)
@@ -71,6 +79,19 @@ export function TalkingHead({
         <img src="/zachhead_100px_bottom.png" alt="" />
       </div>
       <div className="talking-head__holo-overlay" />
+      {onClose && (
+        <button
+          className="talking-head__close"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          type="button"
+          aria-label="Close"
+        >
+          x
+        </button>
+      )}
     </div>
   );
 }
