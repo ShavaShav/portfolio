@@ -274,6 +274,63 @@
   background: rgba(0, 255, 136, 0.2);
 }
 
+.nav-screen__group {
+  border: 1px solid rgba(0, 255, 136, 0.24);
+  border-radius: 8px;
+  background: rgba(0, 255, 136, 0.06);
+}
+
+.nav-screen__group-toggle {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  color: #e8fff2;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.nav-screen__group-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.nav-screen__group-toggle::before {
+  content: "+";
+  width: 12px;
+  color: rgba(232, 255, 242, 0.8);
+  margin-right: 6px;
+}
+
+.nav-screen__group.is-expanded .nav-screen__group-toggle::before {
+  content: "-";
+}
+
+.nav-screen__group-toggle span {
+  margin-right: auto;
+}
+
+.nav-screen__group-toggle small {
+  color: rgba(232, 255, 242, 0.65);
+  font-size: 10px;
+}
+
+.nav-screen__group-toggle.is-active {
+  background: rgba(0, 255, 136, 0.18);
+}
+
+.nav-screen__group-items {
+  display: grid;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.nav-screen__planet--sub {
+  font-size: 11px;
+  background: rgba(0, 255, 136, 0.06);
+}
+
 .nav-screen__return,
 .data-screen__back {
   padding: 8px 10px;

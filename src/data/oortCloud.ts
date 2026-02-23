@@ -21,7 +21,7 @@ export const OORT_CLOUD = {
   subtitle: "Outer Icy Ring",
   innerRadius: 19,
   outerRadius: 23,
-  thickness: 0.75,
+  thickness: 1.2,
   color: "#86dfff",
   emissive: "#8fe6ff",
 };

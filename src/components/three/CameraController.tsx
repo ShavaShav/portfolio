@@ -50,6 +50,8 @@ const CROSSHAIR_AIM_THRESHOLD = 0.994;
 const THRUST_SPEED = 0.12;
 const STRAFE_SPEED = 0.1;
 const VERTICAL_SPEED = 0.1;
+const BOOST_MULTIPLIER = 2.3;
+const BOOST_DURATION_MS = 550;
 const ROLL_SPEED = 0.025;
 const MOUSE_SENSITIVITY = 0.0018;
 const PITCH_LIMIT = Math.PI * 0.48; // ~86 degrees
@@ -103,6 +105,7 @@ export function CameraController({
   const crosshairPlanetRef = useRef<string | null>(null);
   const canvasRef = useRef<HTMLElement | null>(null);
   const isThrustingRef = useRef(false);
+  const boostUntilRef = useRef(0);
 
   // Stable refs to callbacks so pointer-lock event handlers don't go stale
   const onPlanetSelectRef = useRef<((id: string) => void) | null>(null);
@@ -193,6 +196,9 @@ export function CameraController({
           canvasRef.current.requestPointerLock();
         }
         keysRef.current.add(key);
+        if (key === " " && !event.repeat) {
+          boostUntilRef.current = performance.now() + BOOST_DURATION_MS;
+        }
 
         // Disengage from planet when user hits any flight key
         if (activePlanetId && onDisengagePlanet) {
@@ -492,26 +498,40 @@ export function CameraController({
       // Thrust / strafe / vertical
       camera.getWorldDirection(_forward);
       _right.crossVectors(_forward, _worldUp).normalize();
+      const boostMultiplier =
+        performance.now() < boostUntilRef.current ? BOOST_MULTIPLIER : 1;
 
       if (keys.has("w") || keys.has("arrowup")) {
-        camera.position.addScaledVector(_forward, THRUST_SPEED * dt * 60);
+        camera.position.addScaledVector(
+          _forward,
+          THRUST_SPEED * boostMultiplier * dt * 60,
+        );
       }
       if (keys.has("s") || keys.has("arrowdown")) {
-        camera.position.addScaledVector(_forward, -THRUST_SPEED * dt * 60);
+        camera.position.addScaledVector(
+          _forward,
+          -THRUST_SPEED * boostMultiplier * dt * 60,
+        );
       }
       if (keys.has("a") || keys.has("arrowleft")) {
-        camera.position.addScaledVector(_right, -STRAFE_SPEED * dt * 60);
+        camera.position.addScaledVector(
+          _right,
+          -STRAFE_SPEED * boostMultiplier * dt * 60,
+        );
       }
       if (keys.has("d") || keys.has("arrowright")) {
-        camera.position.addScaledVector(_right, STRAFE_SPEED * dt * 60);
+        camera.position.addScaledVector(
+          _right,
+          STRAFE_SPEED * boostMultiplier * dt * 60,
+        );
       }
 
-      // Vertical: Shift = up, Ctrl = down; also Space = up, C = down
-      if (keys.has("shift") || keys.has(" ")) {
-        camera.position.y += VERTICAL_SPEED * dt * 60;
+      // Vertical: Shift = up, Ctrl/C = down
+      if (keys.has("shift")) {
+        camera.position.y += VERTICAL_SPEED * boostMultiplier * dt * 60;
       }
       if (keys.has("control") || keys.has("c")) {
-        camera.position.y -= VERTICAL_SPEED * dt * 60;
+        camera.position.y -= VERTICAL_SPEED * boostMultiplier * dt * 60;
       }
 
       // Roll: Q = roll left, E = roll right

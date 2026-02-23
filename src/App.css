@@ -39,3 +39,41 @@
 .system-overview button:hover {
   background: rgba(0, 255, 136, 0.18);
 }
+
+.system-overview__group {
+  border: 1px solid rgba(0, 255, 136, 0.28);
+  border-radius: 8px;
+  background: rgba(0, 255, 136, 0.05);
+  padding: 8px 10px;
+}
+
+.system-overview__group > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #e6fff3;
+  list-style: none;
+}
+
+.system-overview__group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.system-overview__group > summary::before {
+  content: "+ ";
+  color: rgba(230, 255, 243, 0.76);
+}
+
+.system-overview__group[open] > summary::before {
+  content: "- ";
+}
+
+.system-overview__sublist {
+  margin-top: 8px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.system-overview__sublist button {
+  font-size: 11px;
+  background: rgba(0, 255, 136, 0.07);
+}

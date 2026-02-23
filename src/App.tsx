@@ -17,6 +17,7 @@ import { TalkingHead } from "./components/ui/TalkingHead";
 import { TransmissionOverlay } from "./components/ui/TransmissionOverlay";
 import { VisorHUD } from "./components/visor/VisorHUD";
 import { getMissionForPlanet } from "./data/missions";
+import { OORT_PROJECTS } from "./data/oortCloud";
 import { getPlanetContent } from "./data/planetContent";
 import { PLANETS, getPlanetById } from "./data/planets";
 import { useDeviceCapability } from "./hooks/useDeviceCapability";
@@ -27,6 +28,12 @@ function renderDataContent(
   state: ReturnType<typeof useAppContext>["state"],
   dispatch: ReturnType<typeof useAppContext>["dispatch"],
 ) {
+  const corePlanets = PLANETS.filter((planet) => planet.showOrbitLine !== false);
+  const openSourceVisitedCount = OORT_PROJECTS.reduce(
+    (count, project) => count + (state.visitedPlanets.has(project.id) ? 1 : 0),
+    0,
+  );
+
   switch (state.view.type) {
     case "SOLAR_SYSTEM": {
       if (state.nearestPlanetId) {
@@ -72,7 +79,7 @@ function renderDataContent(
                   About Me - The Sun
                 </button>
               </li>
-              {PLANETS.map((planet) => (
+              {corePlanets.map((planet) => (
                 <li key={planet.id}>
                   <button
                     onClick={() =>
@@ -84,6 +91,31 @@ function renderDataContent(
                   </button>
                 </li>
               ))}
+              <li key="oort-cloud-open-source">
+                <details className="system-overview__group">
+                  <summary>
+                    Oort Cloud - Open Source ({openSourceVisitedCount}/
+                    {OORT_PROJECTS.length} visited)
+                  </summary>
+                  <ul className="system-overview__sublist">
+                    {OORT_PROJECTS.map((project) => (
+                      <li key={project.id}>
+                        <button
+                          onClick={() =>
+                            dispatch({
+                              type: "FLY_TO_PLANET",
+                              planetId: project.id,
+                            })
+                          }
+                          type="button"
+                        >
+                          {project.label} - {project.subtitle}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              </li>
             </ul>
           </div>
         ),
