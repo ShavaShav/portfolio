@@ -119,8 +119,8 @@ export function Terminal({
       typingGenerationRef.current += 1;
 
       if (force) {
-        audioManager.playTransition();
-        appendLine("> Launch override accepted. Skipping sequence.");
+        audioManager.playLaunchIgnition();
+        appendLine("> Launch override accepted. Skipping countdown.");
         setIsTransitioning(true);
         window.setTimeout(onLaunch, 160);
         return;
@@ -131,6 +131,9 @@ export function Terminal({
           audioManager.playLaunchCountdown();
         }
         await typeLine(line);
+        if (line.includes("[OK]")) {
+          audioManager.playLaunchStatusOk();
+        }
       }
 
       audioManager.playLaunchIgnition();
