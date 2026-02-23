@@ -233,7 +233,6 @@ function CockpitExperience() {
 
   const toggleAudio = () => {
     dispatch({ type: "TOGGLE_AUDIO" });
-    audioManager.setEnabled(!state.audioEnabled);
   };
 
   const handlePlanetSelect = (planetId: string) => {
@@ -265,7 +264,7 @@ function CockpitExperience() {
     ? (getPlanetById(crosshairPlanetId)?.label ??
       (crosshairPlanetId === "about" ? "About Me" : crosshairPlanetId))
     : undefined;
-  const crosshairTargetLabel = crosshairEncounterLabel ?? crosshairPlanetLabel;
+  const crosshairTargetLabel = crosshairPlanetLabel ?? crosshairEncounterLabel;
   const encounterEnabled = state.view.type === "SOLAR_SYSTEM";
 
   const showFlightHints =
@@ -292,6 +291,7 @@ function CockpitExperience() {
       onPlanetSelect={handlePlanetSelect}
       onCrosshairPlanetChange={setCrosshairPlanetId}
       onCrosshairEncounterChange={setCrosshairEncounterLabel}
+      crosshairPlanetId={crosshairPlanetId}
       onPointerLockChange={setIsPointerLocked}
       encounterEnabled={encounterEnabled}
       showHint={false}
@@ -309,7 +309,7 @@ function CockpitExperience() {
     !isMobile && !isEntering ? (
       <>
         {isPointerLocked ? (
-          <Crosshair targetLabel={crosshairTargetLabel} />
+          <Crosshair targetLabel={crosshairTargetLabel ?? undefined} />
         ) : null}
         {showFlightHints ? (
           <FlightHintOverlay
@@ -442,8 +442,22 @@ function CockpitExperience() {
 function ViewRenderer() {
   const { state, dispatch } = useAppContext();
 
+  useEffect(() => {
+    audioManager.setEnabled(state.audioEnabled);
+  }, [state.audioEnabled]);
+
   if (state.view.type === "TERMINAL") {
-    return <Terminal onLaunch={() => dispatch({ type: "LAUNCH" })} />;
+    return (
+      <Terminal
+        audioEnabled={state.audioEnabled}
+        onLaunch={() => dispatch({ type: "LAUNCH" })}
+        onSetAudioEnabled={(enabled) => {
+          if (enabled !== state.audioEnabled) {
+            dispatch({ type: "TOGGLE_AUDIO" });
+          }
+        }}
+      />
+    );
   }
 
   return <CockpitExperience />;

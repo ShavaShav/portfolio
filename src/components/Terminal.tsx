@@ -13,6 +13,8 @@ import "./Terminal.css";
 
 type TerminalProps = {
   onLaunch: () => void;
+  audioEnabled: boolean;
+  onSetAudioEnabled: (enabled: boolean) => void;
 };
 
 type OutputLine = {
@@ -35,7 +37,11 @@ function createLineId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function Terminal({ onLaunch }: TerminalProps) {
+export function Terminal({
+  onLaunch,
+  audioEnabled,
+  onSetAudioEnabled,
+}: TerminalProps) {
   const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isBooting, setIsBooting] = useState(true);
@@ -112,7 +118,12 @@ export function Terminal({ onLaunch }: TerminalProps) {
 
   const executeCommand = useCallback(
     async (rawCommand: string) => {
-      const command = rawCommand.trim().toLowerCase();
+      const args = rawCommand
+        .trim()
+        .split(/\s+/)
+        .filter((entry) => entry.length > 0);
+      const command = args[0]?.toLowerCase() ?? "";
+      const subcommand = args[1]?.toLowerCase();
       appendLine(`${TERMINAL_PROMPT} ${rawCommand}`);
 
       if (command === "") {
@@ -128,6 +139,30 @@ export function Terminal({ onLaunch }: TerminalProps) {
         for (const line of getHelpLines()) {
           appendLine(line);
         }
+        return;
+      }
+
+      if (command === "sound") {
+        if (!subcommand) {
+          const nextEnabled = !audioEnabled;
+          onSetAudioEnabled(nextEnabled);
+          appendLine(`> Audio ${nextEnabled ? "enabled" : "disabled"}.`);
+          return;
+        }
+
+        if (subcommand === "on" || subcommand === "off") {
+          const nextEnabled = subcommand === "on";
+          if (nextEnabled === audioEnabled) {
+            appendLine(`> Audio already ${nextEnabled ? "enabled" : "disabled"}.`);
+            return;
+          }
+
+          onSetAudioEnabled(nextEnabled);
+          appendLine(`> Audio ${nextEnabled ? "enabled" : "disabled"}.`);
+          return;
+        }
+
+        appendLine("> Usage: sound [on|off]", "amber");
         return;
       }
 
@@ -153,7 +188,7 @@ export function Terminal({ onLaunch }: TerminalProps) {
 
       appendLine(UNKNOWN_COMMAND_RESPONSE, "amber");
     },
-    [appendLine, runLaunchSequence],
+    [appendLine, audioEnabled, onSetAudioEnabled, runLaunchSequence],
   );
 
   useEffect(() => {

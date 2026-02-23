@@ -1,7 +1,11 @@
+import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AdditiveBlending,
+  BufferGeometry,
+  DodecahedronGeometry,
+  IcosahedronGeometry,
   Mesh,
   MeshBasicMaterial,
   Raycaster,
@@ -13,6 +17,7 @@ import { audioManager } from "../../audio/AudioManager";
 type EncounterSystemProps = {
   enabled?: boolean;
   isMobile?: boolean;
+  hasPlanetTarget?: boolean;
   onCrosshairTargetChange?: (targetLabel: string | null) => void;
 };
 
@@ -35,7 +40,16 @@ type AsteroidEntity = {
   verticalWobblePhase: number;
   spinAxis: Vector3;
   spinSpeed: number;
+  shapeSeed: number;
+  stretch: Vector3;
+  detail: number;
+  jitterOffset: Vector3;
+  jitterVelocity: Vector3;
 };
+
+type AsteroidOverrides = Partial<
+  Omit<AsteroidEntity, "id" | "kind" | "label" | "generation">
+>;
 
 type CometEntity = {
   kind: "comet";
@@ -70,6 +84,17 @@ type SaucerEntity = {
   age: number;
 };
 
+type LaserShot = {
+  id: string;
+  position: Vector3;
+  direction: Vector3;
+  speed: number;
+  age: number;
+  ttl: number;
+  length: number;
+  color: string;
+};
+
 type ExplosionEffect = {
   id: string;
   position: Vector3;
@@ -91,21 +116,33 @@ type ExplosionPulseProps = {
 
 const CENTER_SCREEN = new Vector2(0, 0);
 const SPAWN_RADIUS = 34;
-const INITIAL_ASTEROID_COUNT = 10;
-const MIN_ASTEROID_COUNT = 8;
-const MIN_ASTEROID_SIZE = 0.085;
-const ASTEROID_SPLIT_THRESHOLD = 0.16;
+
+const INITIAL_ASTEROID_COUNT = 12;
+const MIN_ASTEROID_COUNT = 10;
+const MAX_ASTEROID_SIZE = 0.14;
+const MIN_ASTEROID_SIZE = 0.028;
+const ASTEROID_SPLIT_THRESHOLD = 0.07;
 const ASTEROID_SPLIT_FACTOR = 0.62;
+
 const ASTEROID_COLORS = [
-  "#bfc7d7",
-  "#8f9aa8",
-  "#7b8795",
-  "#c8b89b",
-  "#a1b0c2",
+  "#9aa4b1",
+  "#8d948f",
+  "#858f9b",
+  "#b1a58e",
+  "#717b89",
 ];
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function randomRange(min: number, max: number) {
   return min + Math.random() * (max - min);
+}
+
+function seededUnit(seed: number) {
+  const x = Math.sin(seed) * 43758.5453123;
+  return x - Math.floor(x);
 }
 
 function randomPointOnSphere(radius: number) {
@@ -116,6 +153,44 @@ function randomPointOnSphere(radius: number) {
     radius * Math.sin(phi) * Math.sin(theta),
     radius * Math.cos(phi),
   );
+}
+
+function buildAsteroidGeometry(asteroid: AsteroidEntity): BufferGeometry {
+  const chooseIco = seededUnit(asteroid.shapeSeed * 1.91) > 0.44;
+  const geometry = chooseIco
+    ? new IcosahedronGeometry(asteroid.size, asteroid.detail)
+    : new DodecahedronGeometry(asteroid.size, asteroid.detail);
+
+  const positions = geometry.attributes.position;
+  const vertex = new Vector3();
+
+  for (let i = 0; i < positions.count; i++) {
+    vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
+    const safeSize = Math.max(asteroid.size, 1e-5);
+    const nx = vertex.x / safeSize;
+    const ny = vertex.y / safeSize;
+    const nz = vertex.z / safeSize;
+    const shape = asteroid.shapeSeed;
+
+    const n1 = Math.sin(nx * 7.7 + shape * 2.9);
+    const n2 = Math.sin(ny * 9.1 + shape * 4.3);
+    const n3 = Math.sin(nz * 8.3 + shape * 6.1);
+    const ridge = Math.sin((nx + ny + nz) * 6.5 + shape * 7.8);
+    const displacement = clamp(
+      0.84 + n1 * 0.14 + n2 * 0.13 + n3 * 0.1 + ridge * 0.09,
+      0.56,
+      1.26,
+    );
+
+    vertex.multiplyScalar(displacement);
+    vertex.multiply(asteroid.stretch);
+    positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+  }
+
+  positions.needsUpdate = true;
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
 }
 
 function ExplosionPulse({ effect, onDone }: ExplosionPulseProps) {
@@ -163,6 +238,7 @@ function ExplosionPulse({ effect, onDone }: ExplosionPulseProps) {
 export function EncounterSystem({
   enabled = true,
   isMobile = false,
+  hasPlanetTarget = false,
   onCrosshairTargetChange,
 }: EncounterSystemProps) {
   const { camera, gl } = useThree();
@@ -171,43 +247,53 @@ export function EncounterSystem({
   const nextIdRef = useRef(0);
   const raycasterRef = useRef(new Raycaster());
   const meshRefs = useRef<Map<string, Mesh>>(new Map());
+  const shotMeshRefs = useRef<Map<string, Mesh>>(new Map());
   const crosshairLabelRef = useRef<string | null>(null);
+  const asteroidGeometryCacheRef = useRef<Map<string, BufferGeometry>>(
+    new Map(),
+  );
 
-  const nextAsteroidSpawnAtRef = useRef(6 + Math.random() * 5);
+  const nextAsteroidSpawnAtRef = useRef(6 + Math.random() * 4);
   const nextCometSpawnAtRef = useRef(16 + Math.random() * 18);
   const nextSaucerSpawnAtRef = useRef(36 + Math.random() * 28);
 
   const tmpLookRef = useRef(new Vector3());
+  const tmpDirRef = useRef(new Vector3());
 
   const createId = useCallback((prefix: string) => {
     return `${prefix}-${nextIdRef.current++}`;
   }, []);
 
   const createAsteroid = useCallback(
-    (
-      generation = 0,
-      overrides: Partial<
-        Omit<AsteroidEntity, "id" | "kind" | "label" | "generation">
-      > = {},
-    ): AsteroidEntity => {
+    (generation = 0, overrides: AsteroidOverrides = {}): AsteroidEntity => {
       const axis = new Vector3(
         randomRange(-1, 1),
         randomRange(-1, 1),
         randomRange(-1, 1),
       );
       if (axis.lengthSq() < 0.01) {
-        axis.set(0.25, 1, 0.35);
+        axis.set(0.22, 1, 0.32);
       }
       axis.normalize();
 
-      const size = Math.max(
+      const baseSize = MAX_ASTEROID_SIZE - generation * 0.024;
+      const size = clamp(
+        overrides.size ?? randomRange(baseSize * 0.75, baseSize * 1.05),
         MIN_ASTEROID_SIZE,
-        overrides.size ?? 0.4 - generation * 0.075 + Math.random() * 0.28,
+        MAX_ASTEROID_SIZE,
       );
+
       const direction = Math.random() < 0.5 ? -1 : 1;
       const color =
         overrides.color ??
         ASTEROID_COLORS[Math.floor(Math.random() * ASTEROID_COLORS.length)];
+      const stretch =
+        overrides.stretch?.clone() ??
+        new Vector3(
+          randomRange(0.82, 1.32),
+          randomRange(0.72, 1.22),
+          randomRange(0.82, 1.34),
+        );
 
       return {
         kind: "asteroid",
@@ -223,18 +309,23 @@ export function EncounterSystem({
           overrides.inclination ??
           randomRange(0.06, 0.5) * (Math.random() < 0.5 ? -1 : 1),
         radialDriftAmplitude:
-          overrides.radialDriftAmplitude ?? randomRange(0.2, 0.95),
+          overrides.radialDriftAmplitude ?? randomRange(0.12, 0.72),
         radialDriftSpeed: overrides.radialDriftSpeed ?? randomRange(0.2, 0.62),
         radialDriftPhase:
           overrides.radialDriftPhase ?? randomRange(0, Math.PI * 2),
         verticalWobbleAmplitude:
-          overrides.verticalWobbleAmplitude ?? randomRange(0.12, 0.9),
+          overrides.verticalWobbleAmplitude ?? randomRange(0.1, 0.72),
         verticalWobbleSpeed:
           overrides.verticalWobbleSpeed ?? randomRange(0.16, 0.58),
         verticalWobblePhase:
           overrides.verticalWobblePhase ?? randomRange(0, Math.PI * 2),
-        spinAxis: overrides.spinAxis ?? axis,
+        spinAxis: overrides.spinAxis?.clone() ?? axis,
         spinSpeed: overrides.spinSpeed ?? randomRange(0.2, 0.9),
+        shapeSeed: overrides.shapeSeed ?? randomRange(1, 5000),
+        stretch,
+        detail: overrides.detail ?? (Math.random() > 0.52 ? 1 : 0),
+        jitterOffset: overrides.jitterOffset?.clone() ?? new Vector3(),
+        jitterVelocity: overrides.jitterVelocity?.clone() ?? new Vector3(),
       };
     },
     [createId],
@@ -250,7 +341,7 @@ export function EncounterSystem({
       kind: "comet",
       id: createId("comet"),
       label: "COMET",
-      size: randomRange(0.13, 0.24),
+      size: randomRange(0.11, 0.2),
       color: "#d7ebff",
       start,
       direction: travel.normalize(),
@@ -266,7 +357,7 @@ export function EncounterSystem({
       kind: "saucer",
       id: createId("saucer"),
       label: "ALIEN SAUCER",
-      size: randomRange(0.2, 0.34),
+      size: randomRange(0.18, 0.3),
       color: "#8fffd4",
       orbitRadius: randomRange(9, 22),
       orbitSpeed: randomRange(0.09, 0.16) * (Math.random() < 0.5 ? -1 : 1),
@@ -287,11 +378,13 @@ export function EncounterSystem({
   );
   const [comets, setComets] = useState<CometEntity[]>([]);
   const [saucers, setSaucers] = useState<SaucerEntity[]>([]);
+  const [shots, setShots] = useState<LaserShot[]>([]);
   const [effects, setEffects] = useState<ExplosionEffect[]>([]);
 
   const asteroidsRef = useRef(asteroids);
   const cometsRef = useRef(comets);
   const saucersRef = useRef(saucers);
+  const shotsRef = useRef(shots);
 
   const updateAsteroids = useCallback(
     (updater: (previous: AsteroidEntity[]) => AsteroidEntity[]) => {
@@ -326,6 +419,17 @@ export function EncounterSystem({
     [],
   );
 
+  const updateShots = useCallback(
+    (updater: (previous: LaserShot[]) => LaserShot[]) => {
+      setShots((previous) => {
+        const next = updater(previous);
+        shotsRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
+
   const setCrosshairLabel = useCallback(
     (label: string | null) => {
       if (crosshairLabelRef.current === label) return;
@@ -345,6 +449,35 @@ export function EncounterSystem({
     },
     [],
   );
+
+  const setShotMeshRef = useCallback(
+    (shotId: string) => (mesh: Mesh | null) => {
+      if (mesh) {
+        shotMeshRefs.current.set(shotId, mesh);
+        return;
+      }
+      shotMeshRefs.current.delete(shotId);
+    },
+    [],
+  );
+
+  const getAsteroidGeometry = useCallback((asteroid: AsteroidEntity) => {
+    const cached = asteroidGeometryCacheRef.current.get(asteroid.id);
+    if (cached) {
+      return cached;
+    }
+
+    const geometry = buildAsteroidGeometry(asteroid);
+    asteroidGeometryCacheRef.current.set(asteroid.id, geometry);
+    return geometry;
+  }, []);
+
+  const removeAsteroidGeometry = useCallback((asteroidId: string) => {
+    const geometry = asteroidGeometryCacheRef.current.get(asteroidId);
+    if (!geometry) return;
+    geometry.dispose();
+    asteroidGeometryCacheRef.current.delete(asteroidId);
+  }, []);
 
   const createExplosion = useCallback(
     (position: Vector3, color: string, size: number, duration = 0.45) => {
@@ -396,7 +529,6 @@ export function EncounterSystem({
         hitPoint?.clone() ??
         (mesh ? mesh.getWorldPosition(new Vector3()) : undefined);
 
-      audioManager.playBlasterShot();
       setCrosshairLabel(null);
 
       const asteroid = asteroidsRef.current.find((entry) => entry.id === entityId);
@@ -407,44 +539,97 @@ export function EncounterSystem({
             MIN_ASTEROID_SIZE,
             asteroid.size * ASTEROID_SPLIT_FACTOR,
           );
-          const fragments = [0, 1].map((index) => {
-            const direction = index === 0 ? -1 : 1;
-            return createAsteroid(nextGeneration, {
-              size: Math.max(
-                MIN_ASTEROID_SIZE,
-                baseSize * randomRange(0.92, 1.08),
-              ),
-              orbitRadius: Math.max(
-                5.5,
-                asteroid.orbitRadius + direction * randomRange(0.35, 0.95),
-              ),
-              orbitSpeed:
-                asteroid.orbitSpeed *
-                (Math.random() < 0.5 ? -1 : 1) *
-                randomRange(0.92, 1.28),
-              orbitPhase:
-                asteroid.orbitPhase + direction * randomRange(0.18, 0.62),
-              inclination: asteroid.inclination * randomRange(0.8, 1.2),
-              color: asteroid.color,
-            });
-          });
 
+          const splitPush = Math.max(0.25, asteroid.size * 8.4);
+          const orbitAngle =
+            elapsedRef.current * asteroid.orbitSpeed + asteroid.orbitPhase;
+          const tangent = new Vector3(
+            -Math.sin(orbitAngle),
+            0,
+            Math.cos(orbitAngle),
+          ).normalize();
+          const radial = new Vector3(
+            Math.cos(orbitAngle),
+            0,
+            Math.sin(orbitAngle),
+          ).normalize();
+          const vertical = new Vector3(0, 1, 0);
+
+          const fragmentVelocityA = asteroid.jitterVelocity
+            .clone()
+            .multiplyScalar(0.35)
+            .addScaledVector(tangent, splitPush)
+            .addScaledVector(radial, splitPush * 0.45)
+            .addScaledVector(vertical, randomRange(-0.22, 0.22));
+
+          const fragmentVelocityB = asteroid.jitterVelocity
+            .clone()
+            .multiplyScalar(0.35)
+            .addScaledVector(tangent, -splitPush)
+            .addScaledVector(radial, -splitPush * 0.35)
+            .addScaledVector(vertical, randomRange(-0.22, 0.22));
+
+          const fragments = [
+            createAsteroid(nextGeneration, {
+              size: clamp(
+                baseSize * randomRange(0.92, 1.08),
+                MIN_ASTEROID_SIZE,
+                MAX_ASTEROID_SIZE,
+              ),
+              orbitRadius: asteroid.orbitRadius,
+              orbitSpeed: asteroid.orbitSpeed,
+              orbitPhase: asteroid.orbitPhase,
+              inclination: asteroid.inclination,
+              radialDriftAmplitude: asteroid.radialDriftAmplitude,
+              radialDriftSpeed: asteroid.radialDriftSpeed,
+              radialDriftPhase: asteroid.radialDriftPhase,
+              verticalWobbleAmplitude: asteroid.verticalWobbleAmplitude,
+              verticalWobbleSpeed: asteroid.verticalWobbleSpeed,
+              verticalWobblePhase: asteroid.verticalWobblePhase,
+              color: asteroid.color,
+              jitterOffset: asteroid.jitterOffset.clone(),
+              jitterVelocity: fragmentVelocityA,
+            }),
+            createAsteroid(nextGeneration, {
+              size: clamp(
+                baseSize * randomRange(0.92, 1.08),
+                MIN_ASTEROID_SIZE,
+                MAX_ASTEROID_SIZE,
+              ),
+              orbitRadius: asteroid.orbitRadius,
+              orbitSpeed: asteroid.orbitSpeed,
+              orbitPhase: asteroid.orbitPhase,
+              inclination: asteroid.inclination,
+              radialDriftAmplitude: asteroid.radialDriftAmplitude,
+              radialDriftSpeed: asteroid.radialDriftSpeed,
+              radialDriftPhase: asteroid.radialDriftPhase,
+              verticalWobbleAmplitude: asteroid.verticalWobbleAmplitude,
+              verticalWobbleSpeed: asteroid.verticalWobbleSpeed,
+              verticalWobblePhase: asteroid.verticalWobblePhase,
+              color: asteroid.color,
+              jitterOffset: asteroid.jitterOffset.clone(),
+              jitterVelocity: fragmentVelocityB,
+            }),
+          ];
+
+          removeAsteroidGeometry(entityId);
           updateAsteroids((previous) => [
             ...previous.filter((entry) => entry.id !== entityId),
             ...fragments,
           ]);
           if (hitPosition) {
-            createExplosion(hitPosition, asteroid.color, asteroid.size * 1.8, 0.32);
+            createExplosion(hitPosition, asteroid.color, asteroid.size * 1.9, 0.32);
           }
           audioManager.playAsteroidSplit();
           return;
         }
 
+        removeAsteroidGeometry(entityId);
         updateAsteroids((previous) =>
           previous.filter((entry) => entry.id !== entityId),
         );
         if (hitPosition) {
-          createExplosion(hitPosition, asteroid.color, asteroid.size * 2.7, 0.45);
+          createExplosion(hitPosition, asteroid.color, asteroid.size * 2.9, 0.45);
         }
         audioManager.playExplosion();
         return;
@@ -468,7 +653,7 @@ export function EncounterSystem({
           previous.filter((entry) => entry.id !== entityId),
         );
         if (hitPosition) {
-          createExplosion(hitPosition, saucer.color, saucer.size * 3.5, 0.52);
+          createExplosion(hitPosition, saucer.color, saucer.size * 3.7, 0.52);
         }
         audioManager.playExplosion();
       }
@@ -477,11 +662,68 @@ export function EncounterSystem({
       createAsteroid,
       createExplosion,
       enabled,
+      removeAsteroidGeometry,
       setCrosshairLabel,
       updateAsteroids,
       updateComets,
       updateSaucers,
     ],
+  );
+
+  const spawnLaserShot = useCallback(
+    (origin: Vector3, direction: Vector3) => {
+      updateShots((previous) => [
+        ...previous,
+        {
+          id: createId("laser"),
+          position: origin.clone(),
+          direction: direction.clone().normalize(),
+          speed: 56,
+          age: 0,
+          ttl: 0.58,
+          length: 1.35,
+          color: "#7be7ff",
+        },
+      ]);
+    },
+    [createId, updateShots],
+  );
+
+  const fireWeapon = useCallback(
+    (hit: CrosshairHit | null) => {
+      if (!enabled) return;
+
+      const direction = camera.getWorldDirection(tmpDirRef.current).normalize();
+      const origin = camera.position.clone().addScaledVector(direction, 0.85);
+      spawnLaserShot(origin, direction);
+      audioManager.playBlasterShot();
+
+      if (hit) {
+        handleHit(hit.entityId, hit.point);
+      }
+    },
+    [camera, enabled, handleHit, spawnLaserShot],
+  );
+
+  const fireWeaponAtEntity = useCallback(
+    (entityId: string, point: Vector3) => {
+      fireWeapon({
+        entityId,
+        targetLabel: null,
+        point,
+      });
+    },
+    [fireWeapon],
+  );
+
+  const handleMobileTap = useCallback(
+    (event: ThreeEvent<MouseEvent>, entityId: string) => {
+      if (!enabled || !isMobile) return;
+
+      event.stopPropagation();
+      fireWeaponAtEntity(entityId, event.point.clone());
+    },
+    [enabled, fireWeaponAtEntity, isMobile],
   );
 
   useEffect(() => {
@@ -490,21 +732,28 @@ export function EncounterSystem({
     const onCanvasClickCapture = (event: MouseEvent) => {
       if (!enabled || isMobile) return;
       if (document.pointerLockElement !== canvas) return;
-
-      const hit = getCrosshairHit();
-      if (!hit) return;
+      if (hasPlanetTarget) return;
 
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      handleHit(hit.entityId, hit.point);
+
+      const hit = getCrosshairHit();
+      fireWeapon(hit);
     };
 
     canvas.addEventListener("click", onCanvasClickCapture, true);
     return () => {
       canvas.removeEventListener("click", onCanvasClickCapture, true);
     };
-  }, [enabled, getCrosshairHit, gl.domElement, handleHit, isMobile]);
+  }, [
+    enabled,
+    fireWeapon,
+    getCrosshairHit,
+    gl.domElement,
+    hasPlanetTarget,
+    isMobile,
+  ]);
 
   useEffect(() => {
     if (!enabled) {
@@ -517,6 +766,24 @@ export function EncounterSystem({
       setCrosshairLabel(null);
     };
   }, [setCrosshairLabel]);
+
+  useEffect(() => {
+    const activeIds = new Set(asteroids.map((asteroid) => asteroid.id));
+    for (const [asteroidId, geometry] of asteroidGeometryCacheRef.current) {
+      if (activeIds.has(asteroidId)) continue;
+      geometry.dispose();
+      asteroidGeometryCacheRef.current.delete(asteroidId);
+    }
+  }, [asteroids]);
+
+  useEffect(() => {
+    return () => {
+      for (const geometry of asteroidGeometryCacheRef.current.values()) {
+        geometry.dispose();
+      }
+      asteroidGeometryCacheRef.current.clear();
+    };
+  }, []);
 
   useFrame((_state, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -533,14 +800,20 @@ export function EncounterSystem({
         Math.sin(elapsed * asteroid.radialDriftSpeed + asteroid.radialDriftPhase) *
           asteroid.radialDriftAmplitude;
 
-      const x = Math.cos(orbitAngle) * localRadius;
-      const z = Math.sin(orbitAngle) * localRadius;
+      asteroid.jitterOffset.addScaledVector(asteroid.jitterVelocity, dt);
+      asteroid.jitterVelocity.multiplyScalar(Math.max(0, 1 - dt * 2.2));
+
+      const x =
+        Math.cos(orbitAngle) * localRadius + asteroid.jitterOffset.x;
+      const z =
+        Math.sin(orbitAngle) * localRadius + asteroid.jitterOffset.z;
       const y =
         Math.sin(orbitAngle) * asteroid.inclination +
         Math.sin(
           elapsed * asteroid.verticalWobbleSpeed + asteroid.verticalWobblePhase,
         ) *
-          asteroid.verticalWobbleAmplitude;
+          asteroid.verticalWobbleAmplitude +
+        asteroid.jitterOffset.y;
 
       mesh.position.set(x, y, z);
       mesh.rotateOnAxis(asteroid.spinAxis, asteroid.spinSpeed * dt);
@@ -601,6 +874,28 @@ export function EncounterSystem({
       updateSaucers(() => nextSaucers);
     }
 
+    let shotsChanged = false;
+    const nextShots: LaserShot[] = [];
+    for (const shot of shotsRef.current) {
+      shot.age += dt;
+      if (shot.age > shot.ttl) {
+        shotsChanged = true;
+        continue;
+      }
+
+      nextShots.push(shot);
+      shot.position.addScaledVector(shot.direction, shot.speed * dt);
+      const mesh = shotMeshRefs.current.get(shot.id);
+      if (!mesh) continue;
+
+      mesh.position.copy(shot.position);
+      tmpLookRef.current.copy(shot.position).add(shot.direction);
+      mesh.lookAt(tmpLookRef.current);
+    }
+    if (shotsChanged) {
+      updateShots(() => nextShots);
+    }
+
     if (enabled) {
       if (
         asteroidsRef.current.length < MIN_ASTEROID_COUNT &&
@@ -623,7 +918,12 @@ export function EncounterSystem({
       }
     }
 
-    if (!enabled || isMobile || document.pointerLockElement !== gl.domElement) {
+    if (
+      !enabled ||
+      isMobile ||
+      hasPlanetTarget ||
+      document.pointerLockElement !== gl.domElement
+    ) {
       setCrosshairLabel(null);
       return;
     }
@@ -637,25 +937,21 @@ export function EncounterSystem({
       {asteroids.map((asteroid) => (
         <mesh
           key={asteroid.id}
-          onClick={(event) => {
-            if (!enabled) return;
-            if (!isMobile) return;
-            event.stopPropagation();
-            handleHit(asteroid.id);
-          }}
+          onClick={(event) => handleMobileTap(event, asteroid.id)}
           ref={setMeshRef(asteroid.id)}
           userData={{
             entityId: asteroid.id,
             targetLabel: asteroid.label,
           }}
         >
-          <icosahedronGeometry args={[asteroid.size, asteroid.size > 0.25 ? 1 : 0]} />
+          <primitive attach="geometry" object={getAsteroidGeometry(asteroid)} />
           <meshStandardMaterial
             color={asteroid.color}
             emissive={asteroid.color}
-            emissiveIntensity={0.32}
+            emissiveIntensity={0.12}
             flatShading
-            roughness={0.76}
+            metalness={0.08}
+            roughness={0.92}
           />
         </mesh>
       ))}
@@ -663,14 +959,9 @@ export function EncounterSystem({
       {comets.map((comet) => (
         <mesh
           key={comet.id}
-          onClick={(event) => {
-            if (!enabled) return;
-            if (!isMobile) return;
-            event.stopPropagation();
-            handleHit(comet.id);
-          }}
+          onClick={(event) => handleMobileTap(event, comet.id)}
           ref={setMeshRef(comet.id)}
-          scale={[0.65, 0.65, 2.35]}
+          scale={[0.56, 0.56, 2.1]}
           userData={{
             entityId: comet.id,
             targetLabel: comet.label,
@@ -689,12 +980,7 @@ export function EncounterSystem({
       {saucers.map((saucer) => (
         <mesh
           key={saucer.id}
-          onClick={(event) => {
-            if (!enabled) return;
-            if (!isMobile) return;
-            event.stopPropagation();
-            handleHit(saucer.id);
-          }}
+          onClick={(event) => handleMobileTap(event, saucer.id)}
           ref={setMeshRef(saucer.id)}
           scale={[1.8, 0.55, 1.8]}
           userData={{
@@ -709,6 +995,20 @@ export function EncounterSystem({
             emissiveIntensity={1}
             metalness={0.68}
             roughness={0.3}
+          />
+        </mesh>
+      ))}
+
+      {shots.map((shot) => (
+        <mesh key={shot.id} ref={setShotMeshRef(shot.id)}>
+          <boxGeometry args={[0.045, 0.045, shot.length]} />
+          <meshBasicMaterial
+            blending={AdditiveBlending}
+            color={shot.color}
+            depthWrite={false}
+            opacity={0.92}
+            toneMapped={false}
+            transparent
           />
         </mesh>
       ))}

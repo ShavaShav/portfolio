@@ -15,6 +15,7 @@ export const TERMINAL_INTRO_LINES = [
 
 export const TERMINAL_COMMANDS: TerminalCommandDefinition[] = [
   { command: "help", description: "List available commands" },
+  { command: "sound", description: "Toggle audio, or set on/off" },
   { command: "launch", description: "Begin the flight sequence" },
   { command: "about", description: "Quick bio" },
   { command: "whoami", description: "Identity check" },

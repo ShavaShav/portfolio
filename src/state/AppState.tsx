@@ -66,7 +66,7 @@ function createSessionId(): string {
 
 const initialState: AppState = {
   view: { type: "TERMINAL" },
-  audioEnabled: false,
+  audioEnabled: true,
   visitedPlanets: new Set<string>(),
   nearestPlanetId: null,
   companion: {

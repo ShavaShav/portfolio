@@ -20,6 +20,7 @@ type SolarSystemProps = {
   onPlanetSelect?: (planetId: string) => void;
   onDisengagePlanet?: () => void;
   onCrosshairPlanetChange?: (planetId: string | null) => void;
+  crosshairPlanetId?: string | null;
   onCrosshairEncounterChange?: (targetLabel: string | null) => void;
   onPointerLockChange?: (locked: boolean) => void;
   showOrbitLines?: boolean;
@@ -46,6 +47,7 @@ export function SolarSystem({
   onPlanetSelect,
   onDisengagePlanet,
   onCrosshairPlanetChange,
+  crosshairPlanetId = null,
   onCrosshairEncounterChange,
   onPointerLockChange,
   showOrbitLines = true,
@@ -144,6 +146,7 @@ export function SolarSystem({
 
         <EncounterSystem
           enabled={encounterEnabled}
+          hasPlanetTarget={crosshairPlanetId !== null}
           isMobile={isMobile}
           onCrosshairTargetChange={onCrosshairEncounterChange}
         />
