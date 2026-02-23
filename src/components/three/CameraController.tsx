@@ -520,8 +520,12 @@ export function CameraController({
 
       // Free-look on desktop (pointer lock) or mobile (single-finger drag)
       if (hasPointerLook || hasTouchLook) {
-        const lookDelta = hasPointerLook ? mouseDeltaRef.current : touchDeltaRef.current;
-        const sensitivity = hasPointerLook ? MOUSE_SENSITIVITY : TOUCH_SENSITIVITY;
+        const lookDelta = hasPointerLook
+          ? mouseDeltaRef.current
+          : touchDeltaRef.current;
+        const sensitivity = hasPointerLook
+          ? MOUSE_SENSITIVITY
+          : TOUCH_SENSITIVITY;
         const dx = lookDelta.x * sensitivity;
         const dy = lookDelta.y * sensitivity;
         lookDelta.set(0, 0);
