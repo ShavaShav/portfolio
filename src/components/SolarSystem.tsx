@@ -3,7 +3,6 @@ import { useCallback, type ReactNode } from "react";
 import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
-import { OORT_CLOUD } from "../data/oortCloud";
 import type { QualityTier } from "../hooks/useDeviceCapability";
 import { AmbientParticles } from "./three/AmbientParticles";
 import { CameraController } from "./three/CameraController";
@@ -112,7 +111,7 @@ export function SolarSystem({
         <Sun isMobile={isMobile} onSelect={() => handlePlanetSelect("about")} />
 
         {showOrbitLines
-          ? PLANETS.map((planet) => (
+          ? PLANETS.filter((planet) => planet.showOrbitLine !== false).map((planet) => (
               <OrbitLine
                 inclination={planet.orbitInclination}
                 key={`orbit-${planet.id}`}
@@ -120,12 +119,6 @@ export function SolarSystem({
               />
             ))
           : null}
-        {showOrbitLines ? (
-          <OrbitLine
-            inclination={OORT_CLOUD.orbitInclination}
-            radius={OORT_CLOUD.baseOrbitRadius}
-          />
-        ) : null}
 
         {PLANETS.map((planet) => (
           <Planet
@@ -138,11 +131,7 @@ export function SolarSystem({
           />
         ))}
 
-        <OortCloud
-          isMobile={isMobile}
-          onSelect={handlePlanetSelect}
-          visited={visitedPlanets?.has("open-source") ?? false}
-        />
+        <OortCloud isMobile={isMobile} />
 
         <EncounterSystem
           enabled={encounterEnabled}

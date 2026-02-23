@@ -40,7 +40,9 @@ export const TERMINAL_STATIC_RESPONSES: Record<string, string[]> = {
     "> Currently building critical systems at Obviant in Arlington, VA.",
   ],
   whoami: ["> visitor - but you're about to meet Zach"],
-  ls: ["> obviant/ aws/ riskfuel/ open-source/ about/"],
+  ls: [
+    "> obviant/ aws/ riskfuel/ early-career/ express-openapi-zod/ react-native-midi/ juzahach/ react-native-soundfont/ midio/ indepocket/ about/",
+  ],
   sudo: ["> Nice try."],
 };
 

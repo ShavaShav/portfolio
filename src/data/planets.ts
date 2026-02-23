@@ -1,4 +1,4 @@
-import { OORT_CLOUD } from "./oortCloud";
+import { OORT_PROJECTS } from "./oortCloud";
 
 export type PlanetSurfaceType = "rocky" | "gas" | "crystalline" | "terran";
 
@@ -40,6 +40,7 @@ export type PlanetConfig = {
   orbitPhase: number;
   hasRings?: boolean;
   ringColor?: string;
+  showOrbitLine?: boolean;
   hasMission: boolean;
   companionGreeting: string;
   moons?: MoonConfig[];
@@ -57,7 +58,7 @@ export type MoonConfig = {
   orbitPhase: number;
 };
 
-export const PLANETS: PlanetConfig[] = [
+const CORE_PLANETS: PlanetConfig[] = [
   {
     id: "obviant",
     label: "Obviant",
@@ -236,6 +237,74 @@ export const PLANETS: PlanetConfig[] = [
   },
 ];
 
+const OORT_PROJECT_VISUALS: PlanetVisualConfig[] = [
+  {
+    palette: ["#19313d", "#3b6c80", "#9fe8ff"],
+    atmosphereColor: "#bcefff",
+    atmosphereIntensity: 0.45,
+    noiseScale: 5.8,
+    detailScale: 13.2,
+    banding: 1.15,
+    displacementScale: 0.02,
+    emissiveDetailColor: "#d7f8ff",
+    emissiveDetailStrength: 0.17,
+    seed: 62.1,
+    surfaceType: "crystalline",
+  },
+  {
+    palette: ["#1f3746", "#476f86", "#b8ecff"],
+    atmosphereColor: "#c9f1ff",
+    atmosphereIntensity: 0.4,
+    noiseScale: 5.2,
+    detailScale: 11.8,
+    banding: 0.9,
+    displacementScale: 0.018,
+    emissiveDetailColor: "#dbf7ff",
+    emissiveDetailStrength: 0.14,
+    seed: 68.4,
+    surfaceType: "crystalline",
+  },
+  {
+    palette: ["#182c39", "#3f6379", "#c5f2ff"],
+    atmosphereColor: "#c9f4ff",
+    atmosphereIntensity: 0.42,
+    noiseScale: 6.1,
+    detailScale: 12.6,
+    banding: 1.05,
+    displacementScale: 0.019,
+    emissiveDetailColor: "#e2fbff",
+    emissiveDetailStrength: 0.15,
+    seed: 74.9,
+    surfaceType: "crystalline",
+  },
+];
+
+export const OORT_PROJECT_PLANETS: PlanetConfig[] = OORT_PROJECTS.map(
+  (project, index) => ({
+    id: project.id,
+    label: project.label,
+    subtitle: project.subtitle,
+    color: project.color,
+    emissive: project.emissive,
+    radius: project.size,
+    orbitRadius: project.orbitRadius,
+    orbitSpeed: project.orbitSpeed,
+    orbitInclination: project.orbitInclination,
+    orbitPhase: project.orbitPhase,
+    hasRings: false,
+    showOrbitLine: false,
+    hasMission: false,
+    companionGreeting: project.companionGreeting,
+    visual: {
+      ...OORT_PROJECT_VISUALS[index % OORT_PROJECT_VISUALS.length],
+      seed:
+        OORT_PROJECT_VISUALS[index % OORT_PROJECT_VISUALS.length].seed + index,
+    },
+  }),
+);
+
+export const PLANETS: PlanetConfig[] = [...CORE_PLANETS, ...OORT_PROJECT_PLANETS];
+
 export const SUN_AS_ABOUT: PlanetConfig = {
   id: "about",
   label: "About Me",
@@ -256,23 +325,6 @@ export const SUN_AS_ABOUT: PlanetConfig = {
 export function getPlanetById(planetId: string) {
   if (planetId === "about") {
     return SUN_AS_ABOUT;
-  }
-  if (planetId === "open-source") {
-    return {
-      id: OORT_CLOUD.id,
-      label: OORT_CLOUD.label,
-      subtitle: OORT_CLOUD.subtitle,
-      color: OORT_CLOUD.color,
-      emissive: OORT_CLOUD.emissive,
-      radius: 0.3,
-      orbitRadius: OORT_CLOUD.baseOrbitRadius,
-      orbitSpeed: OORT_CLOUD.orbitSpeed,
-      orbitInclination: OORT_CLOUD.orbitInclination,
-      orbitPhase: OORT_CLOUD.orbitPhase,
-      hasRings: false,
-      hasMission: false,
-      companionGreeting: OORT_CLOUD.companionGreeting,
-    } as PlanetConfig;
   }
   return PLANETS.find((planet) => planet.id === planetId);
 }

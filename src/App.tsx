@@ -17,7 +17,6 @@ import { TalkingHead } from "./components/ui/TalkingHead";
 import { TransmissionOverlay } from "./components/ui/TransmissionOverlay";
 import { VisorHUD } from "./components/visor/VisorHUD";
 import { getMissionForPlanet } from "./data/missions";
-import { OORT_CLOUD } from "./data/oortCloud";
 import { getPlanetContent } from "./data/planetContent";
 import { PLANETS, getPlanetById } from "./data/planets";
 import { useDeviceCapability } from "./hooks/useDeviceCapability";
@@ -85,16 +84,6 @@ function renderDataContent(
                   </button>
                 </li>
               ))}
-              <li key="open-source">
-                <button
-                  onClick={() =>
-                    dispatch({ type: "FLY_TO_PLANET", planetId: "open-source" })
-                  }
-                  type="button"
-                >
-                  {OORT_CLOUD.label} - {OORT_CLOUD.subtitle}
-                </button>
-              </li>
             </ul>
           </div>
         ),
@@ -419,7 +408,7 @@ function CockpitExperience() {
           ),
           status: (
             <StatusBar
-              totalPlanets={PLANETS.length + 2}
+              totalPlanets={PLANETS.length + 1}
               view={state.view}
               visitedCount={state.visitedPlanets.size}
             />

@@ -1,4 +1,5 @@
-﻿import type { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { OORT_PROJECTS } from "./oortCloud";
 
 type PlanetLink = {
   label: string;
@@ -17,32 +18,23 @@ export type PlanetContentEntry = {
   extra?: ReactNode;
 };
 
-const openSourceProjects: PlanetLink[] = [
-  {
-    label: "express-openapi-zod",
-    href: "https://www.npmjs.com/package/express-openapi-zod",
-  },
-  {
-    label: "react-native-midi",
-    href: "https://www.npmjs.com/package/react-native-midi",
-  },
-  {
-    label: "juzahach",
-    href: "https://github.com/ShavaShav/juzahach",
-  },
-  {
-    label: "indepocket",
-    href: "https://github.com/ShavaShav/indepocket",
-  },
-  {
-    label: "react-native-soundfont",
-    href: "https://www.npmjs.com/package/react-native-soundfont",
-  },
-  {
-    label: "midio",
-    href: "https://github.com/ShavaShav/midio",
-  },
-];
+const oortProjectEntries: Record<string, PlanetContentEntry> =
+  Object.fromEntries(
+    OORT_PROJECTS.map((project) => [
+      project.id,
+      {
+        title: project.label.toUpperCase(),
+        role: "Open Source Project",
+        period: "Ongoing",
+        summary: project.description,
+        achievements: project.highlights,
+        tech: project.tech,
+        links: project.url
+          ? [{ label: "Project Link", href: project.url }]
+          : undefined,
+      } as PlanetContentEntry,
+    ]),
+  );
 
 export const PLANET_CONTENT: Record<string, PlanetContentEntry> = {
   obviant: {
@@ -113,35 +105,7 @@ export const PLANET_CONTENT: Record<string, PlanetContentEntry> = {
     ],
     tech: ["JavaScript", "TypeScript", "React", "Node.js", "SQL", "C#"],
   },
-  "open-source": {
-    title: "OPEN SOURCE AND SIDE PROJECTS",
-    role: "Builder Mode",
-    period: "Ongoing",
-    summary:
-      "A compact index of tools, libraries, and experiments shipped publicly.",
-    achievements: [
-      "Developer tooling packages downloaded by external users.",
-      "Cross-platform audio/MIDI explorations in mobile ecosystems.",
-      "Personal RAG and automation projects used as applied research sandboxes.",
-    ],
-    tech: ["TypeScript", "React Native", "Node.js", "Python", "LLMs"],
-    links: openSourceProjects,
-    extra: (
-      <div className="planet-detail__project-grid">
-        {openSourceProjects.map((project) => (
-          <a
-            className="planet-detail__project-card"
-            href={project.href}
-            key={project.label}
-            rel="noreferrer"
-            target="_blank"
-          >
-            {project.label}
-          </a>
-        ))}
-      </div>
-    ),
-  },
+  ...oortProjectEntries,
   about: {
     title: "ABOUT ME",
     role: "Human Behind The Code",

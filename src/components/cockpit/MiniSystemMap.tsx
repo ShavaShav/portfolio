@@ -16,7 +16,9 @@ export function MiniSystemMap({
   onSelectPlanet,
   visitedPlanets,
 }: MiniSystemMapProps) {
-  const isOortActive = activePlanetId === "open-source";
+  const ringMidRadius =
+    ((OORT_CLOUD.innerRadius + OORT_CLOUD.outerRadius) / 2) * ORBIT_SCALE;
+  const ringWidth = (OORT_CLOUD.outerRadius - OORT_CLOUD.innerRadius) * ORBIT_SCALE;
 
   return (
     <div className="mini-system-map">
@@ -38,7 +40,7 @@ export function MiniSystemMap({
           style={{ cursor: "pointer" }}
         />
 
-        {PLANETS.map((planet) => (
+        {PLANETS.filter((planet) => planet.showOrbitLine !== false).map((planet) => (
           <circle
             className="mini-system-map__orbit"
             cx={MAP_CENTER}
@@ -52,8 +54,12 @@ export function MiniSystemMap({
           className="mini-system-map__orbit"
           cx={MAP_CENTER}
           cy={MAP_CENTER}
-          r={OORT_CLOUD.baseOrbitRadius * ORBIT_SCALE}
-          strokeDasharray="4 3"
+          r={ringMidRadius}
+          strokeDasharray="3 3"
+          style={{
+            opacity: 0.36,
+            strokeWidth: Math.max(2.5, ringWidth),
+          }}
         />
 
         {PLANETS.map((planet) => {
@@ -65,6 +71,8 @@ export function MiniSystemMap({
             Math.sin(planet.orbitPhase) * planet.orbitRadius * ORBIT_SCALE;
           const isActive = planet.id === activePlanetId;
           const visited = visitedPlanets.has(planet.id);
+          const isProject = planet.showOrbitLine === false;
+          const bodyRadius = isProject ? (isActive ? 6 : 4) : isActive ? 10 : 7;
 
           return (
             <g key={planet.id}>
@@ -82,7 +90,7 @@ export function MiniSystemMap({
                 cy={y}
                 fill={planet.color}
                 onClick={() => onSelectPlanet(planet.id)}
-                r={isActive ? 10 : 7}
+                r={bodyRadius}
                 stroke={isActive ? "#e8fff3" : "transparent"}
                 strokeWidth={isActive ? 2 : 0}
               />
@@ -91,7 +99,7 @@ export function MiniSystemMap({
                   className="mini-system-map__visited"
                   cx={x}
                   cy={y}
-                  r={2.2}
+                  r={isProject ? 1.7 : 2.2}
                 />
               ) : null}
               {planet.moons?.map((moon) => {
@@ -113,28 +121,6 @@ export function MiniSystemMap({
             </g>
           );
         })}
-
-        <g
-          onClick={() => onSelectPlanet("open-source")}
-          style={{ cursor: "pointer" }}
-        >
-          {[0, 0.4, 0.8, 1.2, 1.6].map((offset, i) => {
-            const angle = 5.5 + offset * 0.3;
-            const r = OORT_CLOUD.baseOrbitRadius * ORBIT_SCALE;
-            const dotX = MAP_CENTER + Math.cos(angle) * r;
-            const dotY = MAP_CENTER + Math.sin(angle) * r;
-            return (
-              <circle
-                key={`oort-${i}`}
-                cx={dotX}
-                cy={dotY}
-                fill={OORT_CLOUD.color}
-                opacity={isOortActive ? 1 : 0.6}
-                r={i === 2 ? (isOortActive ? 8 : 5) : 3}
-              />
-            );
-          })}
-        </g>
       </svg>
     </div>
   );
