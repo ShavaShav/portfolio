@@ -126,7 +126,9 @@ export function TalkingHead({
 
   const headBodyClasses = [
     "talking-head__body",
-    !collapsed && (isTalking || isFlipped) ? "talking-head__body--mirrored" : "",
+    !collapsed && (isTalking || isFlipped)
+      ? "talking-head__body--mirrored"
+      : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -142,7 +144,9 @@ export function TalkingHead({
     >
       {onToggleCollapsed ? (
         <button
-          aria-label={collapsed ? "Expand talking head" : "Collapse talking head"}
+          aria-label={
+            collapsed ? "Expand talking head" : "Collapse talking head"
+          }
           className="talking-head__toggle"
           onClick={(e) => {
             e.stopPropagation();

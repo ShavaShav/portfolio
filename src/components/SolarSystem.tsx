@@ -111,13 +111,15 @@ export function SolarSystem({
         <Sun isMobile={isMobile} onSelect={() => handlePlanetSelect("about")} />
 
         {showOrbitLines
-          ? PLANETS.filter((planet) => planet.showOrbitLine !== false).map((planet) => (
-              <OrbitLine
-                inclination={planet.orbitInclination}
-                key={`orbit-${planet.id}`}
-                radius={planet.orbitRadius}
-              />
-            ))
+          ? PLANETS.filter((planet) => planet.showOrbitLine !== false).map(
+              (planet) => (
+                <OrbitLine
+                  inclination={planet.orbitInclination}
+                  key={`orbit-${planet.id}`}
+                  radius={planet.orbitRadius}
+                />
+              ),
+            )
           : null}
 
         {PLANETS.map((planet) => (

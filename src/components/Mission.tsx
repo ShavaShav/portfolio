@@ -163,7 +163,9 @@ export function Mission({ planetId, missionId, onExit }: MissionProps) {
                     className={`mission-step__feedback ${selectedChoice.isCorrect ? "is-correct" : "is-incorrect"}`}
                   >
                     <strong>
-                      {selectedChoice.isCorrect ? "Correct decision" : "Not ideal"}
+                      {selectedChoice.isCorrect
+                        ? "Correct decision"
+                        : "Not ideal"}
                     </strong>
                     <p>{selectedChoice.feedback}</p>
                   </div>

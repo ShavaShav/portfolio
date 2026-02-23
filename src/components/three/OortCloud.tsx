@@ -102,7 +102,10 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
   useEffect(() => {
     const dummy = new Object3D();
 
-    const applyLayer = (mesh: InstancedMesh | null, instances: RingInstance[]) => {
+    const applyLayer = (
+      mesh: InstancedMesh | null,
+      instances: RingInstance[],
+    ) => {
       if (!mesh) return;
 
       for (let i = 0; i < instances.length; i += 1) {

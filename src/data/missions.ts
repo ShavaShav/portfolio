@@ -65,8 +65,7 @@ export const MISSIONS: Mission[] = [
           "Implemented a canonical crosswalk service that maps source identifiers into a shared contract entity with provenance metadata.",
         outcome:
           "Cross-source joins became reliable enough for automation while still exposing confidence and source traceability.",
-        hint:
-          "Think about preserving imperfect matches safely instead of choosing manual review or strict drops.",
+        hint: "Think about preserving imperfect matches safely instead of choosing manual review or strict drops.",
       },
       {
         title: "Flag Budget-Contract Drift",
@@ -99,8 +98,7 @@ export const MISSIONS: Mission[] = [
           "Built period-over-period variance scoring with mission tags, then surfaced alerts only when drift persisted beyond configurable thresholds.",
         outcome:
           "Teams could prioritize investigations earlier and avoid late-cycle surprises in contract execution.",
-        hint:
-          "A single threshold on transaction size is weaker than trend-aware variance detection.",
+        hint: "A single threshold on transaction size is weaker than trend-aware variance detection.",
       },
       {
         title: "Deliver Explainable Operational Views",
@@ -133,8 +131,7 @@ export const MISSIONS: Mission[] = [
           "Delivered a mission-facing data layer that returns linked budget and contract entities with confidence and source lineage for every relationship.",
         outcome:
           "Stakeholders could move from static reporting to interactive investigation with traceable evidence.",
-        hint:
-          "The best answer gives transparency into both the link and the evidence behind it.",
+        hint: "The best answer gives transparency into both the link and the evidence behind it.",
       },
     ],
     outcome:
@@ -182,8 +179,7 @@ export const MISSIONS: Mission[] = [
           "Captured end-to-end traces for the highest-traffic flows and isolated query shape plus hydration costs as the top latency drivers.",
         outcome:
           "Optimization work was focused on a short list of high-impact bottlenecks.",
-        hint:
-          "Find where users actually wait before deciding where to optimize.",
+        hint: "Find where users actually wait before deciding where to optimize.",
       },
       {
         title: "Stabilize Query Contracts",
@@ -216,8 +212,7 @@ export const MISSIONS: Mission[] = [
           "Introduced TypeScript-validated query schemas and canonicalized URL state before hitting API boundaries.",
         outcome:
           "Request deduplication improved and cache behavior became predictable across entry points.",
-        hint:
-          "Caching only works well when request identity is deterministic.",
+        hint: "Caching only works well when request identity is deterministic.",
       },
       {
         title: "Improve Perceived Responsiveness",
@@ -250,8 +245,7 @@ export const MISSIONS: Mission[] = [
           "Applied staged rendering and targeted prefetch windows while memoizing expensive transforms in the UI layer.",
         outcome:
           "Median interactions dropped to sub-200ms and dashboards became operationally reliable.",
-        hint:
-          "Responsiveness is often about reducing blocking work, not just reducing total work.",
+        hint: "Responsiveness is often about reducing blocking work, not just reducing total work.",
       },
     ],
     outcome:
@@ -299,8 +293,7 @@ export const MISSIONS: Mission[] = [
           "Redesigned job orchestration into stage-level state machines with idempotent checkpoints.",
         outcome:
           "Recovery became faster and operational debugging moved from hours to minutes.",
-        hint:
-          "The strongest option improves both retry precision and observability.",
+        hint: "The strongest option improves both retry precision and observability.",
       },
       {
         title: "Handle Cluster Contention",
@@ -333,8 +326,7 @@ export const MISSIONS: Mission[] = [
           "Implemented queue stratification and resource quotas tied to workload criticality and cluster headroom.",
         outcome:
           "Throughput stabilized and failure rates dropped during peak usage windows.",
-        hint:
-          "Think in terms of fairness plus protection, not unrestricted resource grabs.",
+        hint: "Think in terms of fairness plus protection, not unrestricted resource grabs.",
       },
       {
         title: "Make Health Actionable",
@@ -367,8 +359,7 @@ export const MISSIONS: Mission[] = [
           "Rolled out per-stage health probes and Prometheus/Grafana views tied to operational SLO thresholds.",
         outcome:
           "Teams detected regressions earlier and resolved incidents before user-facing impact.",
-        hint:
-          "Actionable telemetry must show where degradation starts, not just that it happened.",
+        hint: "Actionable telemetry must show where degradation starts, not just that it happened.",
       },
     ],
     outcome:
@@ -416,8 +407,7 @@ export const MISSIONS: Mission[] = [
           "Built a compatibility layer that dual-wrote records and logged parity checks across old and new structures.",
         outcome:
           "Both schemas remained synchronized while the system continued serving live traffic.",
-        hint:
-          "You need reversibility and verification before any cutover decision.",
+        hint: "You need reversibility and verification before any cutover decision.",
       },
       {
         title: "Backfill With Validation Gates",
@@ -450,8 +440,7 @@ export const MISSIONS: Mission[] = [
           "Executed phased backfills with automated reconciliation reports and stop conditions for mismatch spikes.",
         outcome:
           "Data quality issues were isolated and corrected before they could impact production behavior.",
-        hint:
-          "Safer migration favors controlled batches plus explicit quality gates.",
+        hint: "Safer migration favors controlled batches plus explicit quality gates.",
       },
       {
         title: "Control Cutover And Rollback",
@@ -484,8 +473,7 @@ export const MISSIONS: Mission[] = [
           "Rolled traffic in stages with explicit rollback gates tied to replication lag, error rate, and dispatch throughput.",
         outcome:
           "Migration completed with no production downtime and clear confidence in the new data model.",
-        hint:
-          "Choose the path that limits blast radius and keeps rollback quick.",
+        hint: "Choose the path that limits blast radius and keeps rollback quick.",
       },
     ],
     outcome:

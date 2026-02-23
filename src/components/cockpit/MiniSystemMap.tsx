@@ -18,7 +18,8 @@ export function MiniSystemMap({
 }: MiniSystemMapProps) {
   const ringMidRadius =
     ((OORT_CLOUD.innerRadius + OORT_CLOUD.outerRadius) / 2) * ORBIT_SCALE;
-  const ringWidth = (OORT_CLOUD.outerRadius - OORT_CLOUD.innerRadius) * ORBIT_SCALE;
+  const ringWidth =
+    (OORT_CLOUD.outerRadius - OORT_CLOUD.innerRadius) * ORBIT_SCALE;
 
   return (
     <div className="mini-system-map">
@@ -40,15 +41,17 @@ export function MiniSystemMap({
           style={{ cursor: "pointer" }}
         />
 
-        {PLANETS.filter((planet) => planet.showOrbitLine !== false).map((planet) => (
-          <circle
-            className="mini-system-map__orbit"
-            cx={MAP_CENTER}
-            cy={MAP_CENTER}
-            key={`orbit-${planet.id}`}
-            r={planet.orbitRadius * ORBIT_SCALE}
-          />
-        ))}
+        {PLANETS.filter((planet) => planet.showOrbitLine !== false).map(
+          (planet) => (
+            <circle
+              className="mini-system-map__orbit"
+              cx={MAP_CENTER}
+              cy={MAP_CENTER}
+              key={`orbit-${planet.id}`}
+              r={planet.orbitRadius * ORBIT_SCALE}
+            />
+          ),
+        )}
 
         <circle
           className="mini-system-map__orbit"

@@ -124,13 +124,7 @@ const ASTEROID_SPLIT_THRESHOLD = 0.07;
 const ASTEROID_SPLIT_FACTOR = 0.62;
 const LASER_COLLISION_PAD = 0.04;
 
-const ASTEROID_COLORS = [
-  "#9aa4b1",
-  "#8d948f",
-  "#858f9b",
-  "#b1a58e",
-  "#717b89",
-];
+const ASTEROID_COLORS = ["#9aa4b1", "#8d948f", "#858f9b", "#b1a58e", "#717b89"];
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -309,7 +303,8 @@ export function EncounterSystem({
         size,
         color,
         orbitRadius: overrides.orbitRadius ?? randomRange(6.5, 23),
-        orbitSpeed: overrides.orbitSpeed ?? direction * randomRange(0.035, 0.09),
+        orbitSpeed:
+          overrides.orbitSpeed ?? direction * randomRange(0.035, 0.09),
         orbitPhase: overrides.orbitPhase ?? randomRange(0, Math.PI * 2),
         inclination:
           overrides.inclination ??
@@ -581,7 +576,9 @@ export function EncounterSystem({
 
       setCrosshairLabel(null);
 
-      const asteroid = asteroidsRef.current.find((entry) => entry.id === entityId);
+      const asteroid = asteroidsRef.current.find(
+        (entry) => entry.id === entityId,
+      );
       if (asteroid) {
         if (asteroid.size > ASTEROID_SPLIT_THRESHOLD) {
           const nextGeneration = asteroid.generation + 1;
@@ -668,7 +665,12 @@ export function EncounterSystem({
             ...fragments,
           ]);
           if (hitPosition) {
-            createExplosion(hitPosition, asteroid.color, asteroid.size * 1.9, 0.32);
+            createExplosion(
+              hitPosition,
+              asteroid.color,
+              asteroid.size * 1.9,
+              0.32,
+            );
           }
           audioManager.playAsteroidSplit();
           return;
@@ -679,7 +681,12 @@ export function EncounterSystem({
           previous.filter((entry) => entry.id !== entityId),
         );
         if (hitPosition) {
-          createExplosion(hitPosition, asteroid.color, asteroid.size * 2.9, 0.45);
+          createExplosion(
+            hitPosition,
+            asteroid.color,
+            asteroid.size * 2.9,
+            0.45,
+          );
         }
         audioManager.playExplosion();
         return;
@@ -783,13 +790,7 @@ export function EncounterSystem({
     return () => {
       canvas.removeEventListener("click", onCanvasClickCapture, true);
     };
-  }, [
-    enabled,
-    fireWeapon,
-    gl.domElement,
-    hasPlanetTarget,
-    isMobile,
-  ]);
+  }, [enabled, fireWeapon, gl.domElement, hasPlanetTarget, isMobile]);
 
   useEffect(() => {
     if (!enabled) {
@@ -833,16 +834,16 @@ export function EncounterSystem({
       const orbitAngle = elapsed * asteroid.orbitSpeed + asteroid.orbitPhase;
       const localRadius =
         asteroid.orbitRadius +
-        Math.sin(elapsed * asteroid.radialDriftSpeed + asteroid.radialDriftPhase) *
+        Math.sin(
+          elapsed * asteroid.radialDriftSpeed + asteroid.radialDriftPhase,
+        ) *
           asteroid.radialDriftAmplitude;
 
       asteroid.jitterOffset.addScaledVector(asteroid.jitterVelocity, dt);
       asteroid.jitterVelocity.multiplyScalar(Math.max(0, 1 - dt * 2.2));
 
-      const x =
-        Math.cos(orbitAngle) * localRadius + asteroid.jitterOffset.x;
-      const z =
-        Math.sin(orbitAngle) * localRadius + asteroid.jitterOffset.z;
+      const x = Math.cos(orbitAngle) * localRadius + asteroid.jitterOffset.x;
+      const z = Math.sin(orbitAngle) * localRadius + asteroid.jitterOffset.z;
       const y =
         Math.sin(orbitAngle) * asteroid.inclination +
         Math.sin(
@@ -918,7 +919,10 @@ export function EncounterSystem({
       shot.position.addScaledVector(shot.direction, shot.speed * dt);
       shotEndRef.current.copy(shot.position);
 
-      const collision = findSegmentHit(shotStartRef.current, shotEndRef.current);
+      const collision = findSegmentHit(
+        shotStartRef.current,
+        shotEndRef.current,
+      );
       if (collision) {
         shotsChanged = true;
         handleHit(collision.entityId, collision.point);

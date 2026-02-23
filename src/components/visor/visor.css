@@ -101,8 +101,13 @@
 }
 
 @keyframes visor-hint-fade {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.7; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .visor-hud__btn.is-active,

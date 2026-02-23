@@ -114,11 +114,7 @@ export function Planet({
       {materialBundle.atmosphereMaterial ? (
         <mesh material={materialBundle.atmosphereMaterial}>
           <sphereGeometry
-            args={[
-              planet.radius * materialBundle.atmosphereScale,
-              36,
-              36,
-            ]}
+            args={[planet.radius * materialBundle.atmosphereScale, 36, 36]}
           />
         </mesh>
       ) : null}

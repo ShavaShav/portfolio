@@ -303,7 +303,10 @@ export const OORT_PROJECT_PLANETS: PlanetConfig[] = OORT_PROJECTS.map(
   }),
 );
 
-export const PLANETS: PlanetConfig[] = [...CORE_PLANETS, ...OORT_PROJECT_PLANETS];
+export const PLANETS: PlanetConfig[] = [
+  ...CORE_PLANETS,
+  ...OORT_PROJECT_PLANETS,
+];
 
 export const SUN_AS_ABOUT: PlanetConfig = {
   id: "about",

@@ -10,7 +10,7 @@ export const TERMINAL_INTRO_LINES = [
   "> Connection established.",
   "> Welcome to zachshaver.com",
   ">",
-  "> Type 'help' for commands, 'launch' to begin, or 'launch -f' to skip.",
+  "> Type 'help' for commands or 'launch' to begin.",
 ];
 
 export const TERMINAL_COMMANDS: TerminalCommandDefinition[] = [

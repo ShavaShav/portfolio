@@ -73,7 +73,9 @@ export function PanelWindow({
     >
       <div className="panel-window__chrome">
         <div className="panel-window__drag-handle">
-          <span className={`panel-window__led ${powered ? "" : "is-standby"}`} />
+          <span
+            className={`panel-window__led ${powered ? "" : "is-standby"}`}
+          />
           <span className="panel-window__title">{title}</span>
         </div>
         <button
