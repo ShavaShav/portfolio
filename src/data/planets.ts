@@ -58,6 +58,8 @@ export type MoonConfig = {
   orbitPhase: number;
 };
 
+const CORE_ORBIT_SPACING_SCALE = 1.12;
+
 const CORE_PLANETS: PlanetConfig[] = [
   {
     id: "obviant",
@@ -66,7 +68,7 @@ const CORE_PLANETS: PlanetConfig[] = [
     color: "#dc2626",
     emissive: "#991b1b",
     radius: 0.6,
-    orbitRadius: 5,
+    orbitRadius: 5 * CORE_ORBIT_SPACING_SCALE,
     orbitSpeed: 0.15,
     orbitInclination: 0.1,
     orbitPhase: 0,
@@ -96,7 +98,7 @@ const CORE_PLANETS: PlanetConfig[] = [
     color: "#ff9900",
     emissive: "#cc7700",
     radius: 0.55,
-    orbitRadius: 8,
+    orbitRadius: 8 * CORE_ORBIT_SPACING_SCALE,
     orbitSpeed: 0.1,
     orbitInclination: -0.15,
     orbitPhase: 2.5,
@@ -133,7 +135,7 @@ const CORE_PLANETS: PlanetConfig[] = [
     color: "#7c3aed",
     emissive: "#5b21b6",
     radius: 0.5,
-    orbitRadius: 11,
+    orbitRadius: 11 * CORE_ORBIT_SPACING_SCALE,
     orbitSpeed: 0.07,
     orbitInclination: 0.05,
     orbitPhase: 4.2,
@@ -162,7 +164,7 @@ const CORE_PLANETS: PlanetConfig[] = [
     color: "#10b981",
     emissive: "#059669",
     radius: 0.4,
-    orbitRadius: 14,
+    orbitRadius: 14 * CORE_ORBIT_SPACING_SCALE,
     orbitSpeed: 0.05,
     orbitInclination: 0.2,
     orbitPhase: 1,
