@@ -1,13 +1,8 @@
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Group, Mesh } from "three";
-import {
-  BufferGeometry,
-  DodecahedronGeometry,
-  IcosahedronGeometry,
-  Vector3,
-} from "three";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Group, InstancedMesh, Mesh } from "three";
+import { Color, Object3D, Vector3 } from "three";
 import { OORT_CLOUD } from "../../data/oortCloud";
 
 type OortCloudProps = {
@@ -16,74 +11,80 @@ type OortCloudProps = {
   isMobile?: boolean;
 };
 
-type AsteroidInstance = {
-  id: string;
-  label: string;
-  rotationAxis: Vector3;
-  rotationSpeed: number;
-  orbitRadius: number;
-  orbitPhase: number;
-  orbitSpeed: number;
-  driftAmplitude: number;
-  driftSpeed: number;
-  driftPhase: number;
-  verticalAmplitude: number;
-  verticalSpeed: number;
-  verticalPhase: number;
-  size: number;
-  color: string;
-  stretch: Vector3;
-  detail: number;
-  shapeSeed: number;
-  roughness: number;
-  metalness: number;
-  surfaceGlow: number;
-  pulseSpeed: number;
-  pulsePhase: number;
-  isHub: boolean;
+type CloudInstance = {
+  position: Vector3;
+  rotation: Vector3;
+  scale: number;
+  color: Color;
 };
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
+type ProjectBody = {
+  id: string;
+  label: string;
+  color: string;
+  size: number;
+  stretch: Vector3;
+  basePosition: Vector3;
+  rotationAxis: Vector3;
+  rotationSpeed: number;
+  driftAmplitude: Vector3;
+  driftSpeed: Vector3;
+  driftPhase: Vector3;
+};
 
 function seededUnit(seed: number) {
   const x = Math.sin(seed) * 43758.5453123;
   return x - Math.floor(x);
 }
 
-function buildOortGeometry(body: AsteroidInstance): BufferGeometry {
-  const chooseIco = seededUnit(body.shapeSeed * 1.37) > 0.42;
-  const geometry = chooseIco
-    ? new IcosahedronGeometry(body.size, body.detail)
-    : new DodecahedronGeometry(body.size, body.detail);
+function sphericalToCartesian(radius: number, theta: number, phi: number) {
+  return new Vector3(
+    radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.sin(phi) * Math.sin(theta),
+    radius * Math.cos(phi),
+  );
+}
 
-  const positions = geometry.attributes.position;
-  const vertex = new Vector3();
-  const safeSize = Math.max(body.size, 1e-5);
+function createCloudInstances(
+  count: number,
+  radiusMin: number,
+  radiusMax: number,
+  sizeMin: number,
+  sizeMax: number,
+  seedOffset: number,
+) {
+  const result: CloudInstance[] = [];
 
-  for (let i = 0; i < positions.count; i++) {
-    vertex.set(positions.getX(i), positions.getY(i), positions.getZ(i));
-    const nx = vertex.x / safeSize;
-    const ny = vertex.y / safeSize;
-    const nz = vertex.z / safeSize;
-    const shape = body.shapeSeed;
+  for (let i = 0; i < count; i++) {
+    const seed = i + seedOffset;
+    const u1 = seededUnit(seed * 1.13 + 0.27);
+    const u2 = seededUnit(seed * 2.41 + 3.17);
+    const u3 = seededUnit(seed * 4.73 + 1.83);
+    const u4 = seededUnit(seed * 6.01 + 2.91);
+    const u5 = seededUnit(seed * 7.37 + 4.29);
 
-    const broad = Math.sin(nx * 4.8 + shape * 1.9) * 0.18;
-    const medium = Math.sin(ny * 7.4 + shape * 2.7) * 0.12;
-    const fine = Math.sin((nx + ny + nz) * 10.2 + shape * 4.1) * 0.08;
-    const ridge = Math.sin((nx - ny + nz) * 8.4 + shape * 5.6) * 0.06;
-    const displacement = clamp(0.86 + broad + medium + fine + ridge, 0.55, 1.34);
+    const theta = u1 * Math.PI * 2;
+    const phi = Math.acos(2 * u2 - 1);
+    const radius = radiusMin + Math.pow(u3, 0.68) * (radiusMax - radiusMin);
+    const position = sphericalToCartesian(radius, theta, phi);
 
-    vertex.multiplyScalar(displacement);
-    vertex.multiply(body.stretch);
-    positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
+    const cold = 0.7 + u4 * 0.3;
+    const bright = 0.55 + u5 * 0.45;
+    const color = new Color(
+      0.62 * bright * cold,
+      0.82 * bright,
+      1.0 * bright,
+    );
+
+    result.push({
+      position,
+      rotation: new Vector3(u4 * Math.PI, u5 * Math.PI, u1 * Math.PI),
+      scale: sizeMin + u4 * (sizeMax - sizeMin),
+      color,
+    });
   }
 
-  positions.needsUpdate = true;
-  geometry.computeVertexNormals();
-  geometry.computeBoundingSphere();
-  return geometry;
+  return result;
 }
 
 export function OortCloud({
@@ -92,85 +93,102 @@ export function OortCloud({
   isMobile = false,
 }: OortCloudProps) {
   const cloudRef = useRef<Group>(null);
-  const meshRefs = useRef<Map<string, Mesh>>(new Map());
-  const materialRefs = useRef<Map<string, Mesh>>(new Map());
-  const asteroidGroupRefs = useRef<Map<string, Group>>(new Map());
-  const geometryCacheRef = useRef<Map<string, BufferGeometry>>(new Map());
+  const cloudLayerARef = useRef<Group>(null);
+  const cloudLayerBRef = useRef<Group>(null);
+  const layerAMeshRef = useRef<InstancedMesh>(null);
+  const layerBMeshRef = useRef<InstancedMesh>(null);
+  const projectMeshRefs = useRef<Map<string, Mesh>>(new Map());
+  const projectGroupRefs = useRef<Map<string, Group>>(new Map());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const asteroids = useMemo<AsteroidInstance[]>(() => {
-    const result: AsteroidInstance[] = [];
+  const cloudLayerA = useMemo(
+    () =>
+      createCloudInstances(
+        isMobile ? 1200 : 4200,
+        1.8,
+        5.6,
+        0.015,
+        0.06,
+        91,
+      ),
+    [isMobile],
+  );
 
-    result.push({
-      id: OORT_CLOUD.id,
-      label: OORT_CLOUD.label,
-      rotationAxis: new Vector3(0.3, 1, 0.2).normalize(),
-      rotationSpeed: 0.3,
-      orbitRadius: 0,
-      orbitPhase: 0,
-      orbitSpeed: 0,
-      driftAmplitude: 0,
-      driftSpeed: 0,
-      driftPhase: 0,
-      verticalAmplitude: 0,
-      verticalSpeed: 0,
-      verticalPhase: 0,
-      size: 0.36,
-      color: OORT_CLOUD.color,
-      stretch: new Vector3(1.16, 0.92, 1.08),
-      detail: 2,
-      shapeSeed: 9.2,
-      roughness: 0.58,
-      metalness: 0.18,
-      surfaceGlow: 0.74,
-      pulseSpeed: 0.32,
-      pulsePhase: 1.4,
-      isHub: true,
+  const cloudLayerB = useMemo(
+    () =>
+      createCloudInstances(
+        isMobile ? 700 : 2200,
+        2.2,
+        6.2,
+        0.018,
+        0.072,
+        417,
+      ),
+    [isMobile],
+  );
+
+  const projects = useMemo<ProjectBody[]>(() => {
+    return OORT_CLOUD.asteroids.map((project, index) => {
+      const seed = index + 1;
+      const u1 = seededUnit(seed * 1.31 + 5.71);
+      const u2 = seededUnit(seed * 2.37 + 3.19);
+      const u3 = seededUnit(seed * 3.89 + 2.77);
+      const u4 = seededUnit(seed * 4.81 + 7.11);
+      const u5 = seededUnit(seed * 5.67 + 8.23);
+
+      const theta = u1 * Math.PI * 2;
+      const phi = Math.acos(2 * u2 - 1);
+      const radius = 2.2 + u3 * 2.8;
+      const basePosition = sphericalToCartesian(radius, theta, phi);
+      const axis = new Vector3(u2 - 0.5, u3 - 0.5, u4 - 0.5);
+      if (axis.lengthSq() < 0.001) {
+        axis.set(0.3, 1, 0.2);
+      }
+      axis.normalize();
+
+      return {
+        id: project.id,
+        label: project.label,
+        color: project.color,
+        size: Math.max(0.14, project.size * 2.05),
+        stretch: new Vector3(0.8 + u4 * 0.52, 0.72 + u5 * 0.58, 0.82 + u3 * 0.55),
+        basePosition,
+        rotationAxis: axis,
+        rotationSpeed: 0.24 + u1 * 0.56,
+        driftAmplitude: new Vector3(0.06 + u2 * 0.16, 0.04 + u3 * 0.14, 0.06 + u4 * 0.16),
+        driftSpeed: new Vector3(0.18 + u4 * 0.32, 0.2 + u5 * 0.28, 0.16 + u1 * 0.34),
+        driftPhase: new Vector3(u3 * Math.PI * 2, u4 * Math.PI * 2, u5 * Math.PI * 2),
+      };
     });
-
-    OORT_CLOUD.asteroids.forEach((asteroid, i) => {
-      const seed1 = Math.sin(i * 127.1 + 311.7) * 0.5 + 0.5;
-      const seed2 = Math.sin(i * 269.5 + 183.3) * 0.5 + 0.5;
-      const seed3 = Math.sin(i * 419.2 + 371.9) * 0.5 + 0.5;
-
-      result.push({
-        id: asteroid.id,
-        label: asteroid.label,
-        rotationAxis: new Vector3(
-          seed1 - 0.5,
-          seed2 - 0.5,
-          seed3 - 0.5,
-        ).normalize(),
-        rotationSpeed: 0.2 + seed3 * 0.5,
-        orbitRadius: 1.2 + seed1 * 2.8,
-        orbitPhase: i * 0.95 + seed2 * Math.PI,
-        orbitSpeed: 0.08 + seed3 * 0.16,
-        driftAmplitude: 0.07 + seed2 * 0.14,
-        driftSpeed: 0.22 + seed1 * 0.3,
-        driftPhase: seed3 * Math.PI * 2,
-        verticalAmplitude: 0.08 + seed2 * 0.34,
-        verticalSpeed: 0.26 + seed3 * 0.42,
-        verticalPhase: seed1 * Math.PI * 2,
-        size: asteroid.size,
-        color: asteroid.color,
-        stretch: new Vector3(
-          0.78 + seed1 * 0.6,
-          0.72 + seed2 * 0.54,
-          0.8 + seed3 * 0.62,
-        ),
-        detail: seed1 > 0.58 ? 1 : 0,
-        shapeSeed: 30 + i * 17.4 + seed2 * 9,
-        roughness: 0.74 + seed1 * 0.22,
-        metalness: 0.04 + seed3 * 0.12,
-        surfaceGlow: 0.28 + seed2 * 0.34,
-        pulseSpeed: 0.42 + seed3 * 0.6,
-        pulsePhase: seed1 * Math.PI * 2,
-        isHub: false,
-      });
-    });
-
-    return result;
   }, []);
+
+  useEffect(() => {
+    const dummy = new Object3D();
+
+    const applyLayer = (mesh: InstancedMesh | null, instances: CloudInstance[]) => {
+      if (!mesh) return;
+      for (let i = 0; i < instances.length; i++) {
+        const instance = instances[i];
+        dummy.position.copy(instance.position);
+        dummy.rotation.set(
+          instance.rotation.x,
+          instance.rotation.y,
+          instance.rotation.z,
+        );
+        dummy.scale.setScalar(instance.scale);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+        mesh.setColorAt(i, instance.color);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) {
+        mesh.instanceColor.needsUpdate = true;
+      }
+    };
+
+    applyLayer(layerAMeshRef.current, cloudLayerA);
+    applyLayer(layerBMeshRef.current, cloudLayerB);
+  }, [cloudLayerA, cloudLayerB]);
 
   useEffect(() => {
     document.body.style.cursor = hoveredId ? "pointer" : "default";
@@ -195,100 +213,105 @@ export function OortCloud({
       cloudRef.current.position.set(cloudX, cloudY, cloudZ);
     }
 
-    asteroids.forEach((asteroid) => {
-      const asteroidGroup = asteroidGroupRefs.current.get(asteroid.id);
+    if (cloudLayerARef.current) {
+      cloudLayerARef.current.rotation.y += delta * 0.011;
+      cloudLayerARef.current.rotation.x = Math.sin(elapsed * 0.08) * 0.09;
+    }
 
-      if (asteroidGroup) {
-        if (asteroid.isHub) {
-          asteroidGroup.position.set(0, 0, 0);
-        } else {
-          const localAngle = elapsed * asteroid.orbitSpeed + asteroid.orbitPhase;
-          const radialDrift =
-            Math.sin(elapsed * asteroid.driftSpeed + asteroid.driftPhase) *
-            asteroid.driftAmplitude;
-          const localRadius = asteroid.orbitRadius + radialDrift;
-          const yOffset =
-            Math.sin(elapsed * asteroid.verticalSpeed + asteroid.verticalPhase) *
-            asteroid.verticalAmplitude;
+    if (cloudLayerBRef.current) {
+      cloudLayerBRef.current.rotation.y -= delta * 0.007;
+      cloudLayerBRef.current.rotation.z = Math.cos(elapsed * 0.06) * 0.11;
+    }
 
-          asteroidGroup.position.set(
-            Math.cos(localAngle) * localRadius,
-            yOffset,
-            Math.sin(localAngle) * localRadius,
-          );
-        }
-      }
+    projects.forEach((project) => {
+      const group = projectGroupRefs.current.get(project.id);
+      if (!group) return;
 
-      const mesh = meshRefs.current.get(asteroid.id);
+      group.position.set(
+        project.basePosition.x +
+          Math.sin(elapsed * project.driftSpeed.x + project.driftPhase.x) *
+            project.driftAmplitude.x,
+        project.basePosition.y +
+          Math.sin(elapsed * project.driftSpeed.y + project.driftPhase.y) *
+            project.driftAmplitude.y,
+        project.basePosition.z +
+          Math.sin(elapsed * project.driftSpeed.z + project.driftPhase.z) *
+            project.driftAmplitude.z,
+      );
+
+      const mesh = projectMeshRefs.current.get(project.id);
       if (mesh) {
-        mesh.rotateOnAxis(asteroid.rotationAxis, asteroid.rotationSpeed * delta);
-      }
-
-      const materialMesh = materialRefs.current.get(asteroid.id);
-      if (materialMesh?.material && "emissiveIntensity" in materialMesh.material) {
-        const pulse =
-          0.68 +
-          Math.sin(elapsed * asteroid.pulseSpeed + asteroid.pulsePhase) * 0.24;
-        const base = hoveredId === asteroid.id ? 1.2 : asteroid.surfaceGlow;
-        materialMesh.material.emissiveIntensity =
-          (visited && asteroid.isHub ? 1.3 : base) * pulse;
+        mesh.rotateOnAxis(project.rotationAxis, project.rotationSpeed * delta);
       }
     });
   });
 
-  const setMeshRef = (id: string) => (mesh: Mesh | null) => {
+  const setProjectMeshRef = (id: string) => (mesh: Mesh | null) => {
     if (mesh) {
-      meshRefs.current.set(id, mesh);
+      projectMeshRefs.current.set(id, mesh);
       return;
     }
-    meshRefs.current.delete(id);
+    projectMeshRefs.current.delete(id);
   };
 
-  const setGroupRef = (id: string) => (group: Group | null) => {
+  const setProjectGroupRef = (id: string) => (group: Group | null) => {
     if (group) {
-      asteroidGroupRefs.current.set(id, group);
+      projectGroupRefs.current.set(id, group);
       return;
     }
-    asteroidGroupRefs.current.delete(id);
+    projectGroupRefs.current.delete(id);
   };
-
-  const setMaterialMeshRef = (id: string) => (mesh: Mesh | null) => {
-    if (mesh) {
-      materialRefs.current.set(id, mesh);
-      return;
-    }
-    materialRefs.current.delete(id);
-  };
-
-  const getGeometry = useCallback((body: AsteroidInstance) => {
-    const cached = geometryCacheRef.current.get(body.id);
-    if (cached) {
-      return cached;
-    }
-
-    const geometry = buildOortGeometry(body);
-    geometryCacheRef.current.set(body.id, geometry);
-    return geometry;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      for (const geometry of geometryCacheRef.current.values()) {
-        geometry.dispose();
-      }
-      geometryCacheRef.current.clear();
-    };
-  }, []);
 
   return (
     <group ref={cloudRef}>
-      {asteroids.map((asteroid) => (
-        <group key={asteroid.id} ref={setGroupRef(asteroid.id)}>
+      <group ref={cloudLayerARef}>
+        <instancedMesh
+          args={[undefined, undefined, cloudLayerA.length]}
+          frustumCulled={false}
+          ref={layerAMeshRef}
+        >
+          <icosahedronGeometry args={[1, 0]} />
+          <meshStandardMaterial
+            emissive="#8edcff"
+            emissiveIntensity={0.18}
+            metalness={0.16}
+            roughness={0.66}
+            vertexColors
+          />
+        </instancedMesh>
+      </group>
+
+      <group ref={cloudLayerBRef}>
+        <instancedMesh
+          args={[undefined, undefined, cloudLayerB.length]}
+          frustumCulled={false}
+          ref={layerBMeshRef}
+        >
+          <icosahedronGeometry args={[1, 1]} />
+          <meshStandardMaterial
+            emissive="#b8eeff"
+            emissiveIntensity={0.24}
+            metalness={0.22}
+            roughness={0.54}
+            vertexColors
+          />
+        </instancedMesh>
+      </group>
+
+      <mesh
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect("open-source");
+        }}
+        visible={false}
+      >
+        <sphereGeometry args={[6.6, 20, 20]} />
+        <meshBasicMaterial />
+      </mesh>
+
+      {projects.map((project) => (
+        <group key={project.id} ref={setProjectGroupRef(project.id)}>
           <mesh
-            ref={(mesh) => {
-              setMeshRef(asteroid.id)(mesh);
-              setMaterialMeshRef(asteroid.id)(mesh);
-            }}
             onClick={(event) => {
               event.stopPropagation();
               onSelect("open-source");
@@ -299,45 +322,34 @@ export function OortCloud({
             }}
             onPointerOver={(event) => {
               event.stopPropagation();
-              setHoveredId(asteroid.id);
+              setHoveredId(project.id);
             }}
+            ref={setProjectMeshRef(project.id)}
+            scale={project.stretch.toArray()}
           >
-            <primitive attach="geometry" object={getGeometry(asteroid)} />
+            <icosahedronGeometry args={[project.size, 1]} />
             <meshStandardMaterial
-              color={asteroid.color}
-              emissive={asteroid.color}
-              emissiveIntensity={asteroid.surfaceGlow}
-              roughness={asteroid.roughness}
-              metalness={asteroid.metalness}
-              flatShading={!asteroid.isHub}
+              color={project.color}
+              emissive={project.color}
+              emissiveIntensity={
+                hoveredId === project.id || visited ? 1.22 : 0.62
+              }
+              metalness={0.28}
+              roughness={0.48}
             />
           </mesh>
 
-          {asteroid.isHub ? (
-            <>
-              <mesh scale={[1.12, 1.12, 1.12]}>
-                <sphereGeometry args={[asteroid.size, 20, 20]} />
-                <meshStandardMaterial
-                  color="#9fefff"
-                  emissive="#8fe8ff"
-                  emissiveIntensity={0.36}
-                  opacity={0.2}
-                  roughness={0.6}
-                  transparent
-                />
-              </mesh>
-              <mesh rotation={[Math.PI / 2.6, 0.4, 0.2]}>
-                <torusGeometry args={[asteroid.size * 1.55, asteroid.size * 0.08, 12, 54]} />
-                <meshStandardMaterial
-                  color="#75f0ff"
-                  emissive="#7ee6ff"
-                  emissiveIntensity={0.3}
-                  metalness={0.35}
-                  roughness={0.48}
-                />
-              </mesh>
-            </>
-          ) : null}
+          <mesh scale={[1.15, 1.15, 1.15]}>
+            <sphereGeometry args={[project.size, 14, 14]} />
+            <meshStandardMaterial
+              color="#d7f6ff"
+              emissive={project.color}
+              emissiveIntensity={0.12}
+              opacity={0.18}
+              roughness={0.62}
+              transparent
+            />
+          </mesh>
 
           {isMobile ? (
             <mesh
@@ -347,19 +359,19 @@ export function OortCloud({
               }}
               visible={false}
             >
-              <sphereGeometry args={[asteroid.size * 2.5, 8, 8]} />
+              <sphereGeometry args={[project.size * 2.8, 8, 8]} />
               <meshBasicMaterial />
             </mesh>
           ) : null}
 
-          {hoveredId === asteroid.id ? (
+          {hoveredId === project.id ? (
             <Html
               center
               distanceFactor={10}
-              position={[0, asteroid.size + 0.3, 0]}
+              position={[0, project.size + 0.3, 0]}
             >
               <div className="planet-label planet-label--active">
-                <strong>{asteroid.label}</strong>
+                <strong>{project.label}</strong>
               </div>
             </Html>
           ) : null}
