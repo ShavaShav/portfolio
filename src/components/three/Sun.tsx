@@ -97,9 +97,15 @@ export function Sun({ onSelect, isMobile = false }: SunProps) {
         />
       </mesh>
 
-      <Html center distanceFactor={10} position={[0, 2.2, 0]}>
+      <Html
+        center
+        distanceFactor={10}
+        position={[0, 2.2, 0]}
+        zIndexRange={[2, 0]}
+      >
         <div
           className={`planet-label ${isHovered ? "planet-label--active" : ""}`}
+          style={{ pointerEvents: "none" }}
         >
           <strong>About Me</strong>
           <span>Zach Shaver</span>

@@ -174,9 +174,15 @@ export function Planet({
         <Moon key={moon.id} moon={moon} onSelect={() => onSelect(planet.id)} />
       ))}
 
-      <Html center distanceFactor={10} position={[0, planet.radius + 0.6, 0]}>
+      <Html
+        center
+        distanceFactor={10}
+        position={[0, planet.radius + 0.6, 0]}
+        zIndexRange={[2, 0]}
+      >
         <div
           className={`planet-label ${isHovered ? "planet-label--active" : ""}`}
+          style={{ pointerEvents: "none" }}
         >
           <strong>{planet.label}</strong>
           <span>{planet.subtitle}</span>

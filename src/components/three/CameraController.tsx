@@ -15,6 +15,7 @@ type CameraControllerProps = {
   flyToPlanetId?: string;
   isFlyingHome?: boolean;
   isEntering?: boolean;
+  isMobile?: boolean;
   activePlanetId?: string;
   onArrivePlanet?: (planetId: string) => void;
   onArriveHome?: () => void;
@@ -54,12 +55,14 @@ const BOOST_MULTIPLIER = 2.3;
 const BOOST_DURATION_MS = 550;
 const ROLL_SPEED = 0.025;
 const MOUSE_SENSITIVITY = 0.0018;
+const TOUCH_SENSITIVITY = 0.0034;
 const PITCH_LIMIT = Math.PI * 0.48; // ~86 degrees
 
 export function CameraController({
   flyToPlanetId,
   isFlyingHome = false,
   isEntering = false,
+  isMobile = false,
   activePlanetId,
   onArrivePlanet,
   onArriveHome,
@@ -86,6 +89,12 @@ export function CameraController({
   // Mouse look state
   const isPointerLockedRef = useRef(false);
   const mouseDeltaRef = useRef<Vector2>(new Vector2());
+  const touchDeltaRef = useRef<Vector2>(new Vector2());
+  const touchLookStateRef = useRef({
+    active: false,
+    lastX: 0,
+    lastY: 0,
+  });
 
   // Accumulated pitch to enforce limits
   const pitchRef = useRef(0);
@@ -139,6 +148,7 @@ export function CameraController({
 
     // Click: acquire pointer lock, or if already locked, lock on to crosshair planet
     const onCanvasClick = () => {
+      if (isMobile) return;
       if (!isPointerLockedRef.current) {
         if (flightActiveRef.current) canvas.requestPointerLock();
       } else {
@@ -150,16 +160,52 @@ export function CameraController({
       }
     };
 
+    const onTouchStart = (event: TouchEvent) => {
+      if (!isMobile || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      const state = touchLookStateRef.current;
+      state.active = true;
+      state.lastX = touch.clientX;
+      state.lastY = touch.clientY;
+      touchDeltaRef.current.set(0, 0);
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!isMobile || event.touches.length !== 1) return;
+      const state = touchLookStateRef.current;
+      if (!state.active) return;
+
+      const touch = event.touches[0];
+      touchDeltaRef.current.x += touch.clientX - state.lastX;
+      touchDeltaRef.current.y += touch.clientY - state.lastY;
+      state.lastX = touch.clientX;
+      state.lastY = touch.clientY;
+      event.preventDefault();
+    };
+
+    const onTouchEnd = () => {
+      touchLookStateRef.current.active = false;
+      touchDeltaRef.current.set(0, 0);
+    };
+
     document.addEventListener("pointerlockchange", onPointerLockChange);
     document.addEventListener("mousemove", onMouseMove);
     canvas.addEventListener("click", onCanvasClick);
+    canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+    canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+    canvas.addEventListener("touchend", onTouchEnd);
+    canvas.addEventListener("touchcancel", onTouchEnd);
 
     return () => {
       document.removeEventListener("pointerlockchange", onPointerLockChange);
       document.removeEventListener("mousemove", onMouseMove);
       canvas.removeEventListener("click", onCanvasClick);
+      canvas.removeEventListener("touchstart", onTouchStart);
+      canvas.removeEventListener("touchmove", onTouchMove);
+      canvas.removeEventListener("touchend", onTouchEnd);
+      canvas.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [gl.domElement]);
+  }, [gl.domElement, isMobile]);
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
   const handleKeyDown = useCallback(
@@ -469,11 +515,16 @@ export function CameraController({
     ) {
       const keys = keysRef.current;
 
-      // Mouse look (pointer-locked)
-      if (isPointerLockedRef.current) {
-        const dx = mouseDeltaRef.current.x * MOUSE_SENSITIVITY;
-        const dy = mouseDeltaRef.current.y * MOUSE_SENSITIVITY;
-        mouseDeltaRef.current.set(0, 0);
+      const hasPointerLook = isPointerLockedRef.current;
+      const hasTouchLook = isMobile && touchLookStateRef.current.active;
+
+      // Free-look on desktop (pointer lock) or mobile (single-finger drag)
+      if (hasPointerLook || hasTouchLook) {
+        const lookDelta = hasPointerLook ? mouseDeltaRef.current : touchDeltaRef.current;
+        const sensitivity = hasPointerLook ? MOUSE_SENSITIVITY : TOUCH_SENSITIVITY;
+        const dx = lookDelta.x * sensitivity;
+        const dy = lookDelta.y * sensitivity;
+        lookDelta.set(0, 0);
 
         if (dx !== 0 || dy !== 0) {
           // Yaw: rotate around world Y

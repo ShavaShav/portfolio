@@ -157,9 +157,15 @@ export function Moon({ moon, onSelect }: MoonProps) {
         roughness={isEarlyCareerMoon ? 0.86 : 0.7}
       />
       {isHovered || isEarlyCareerMoon ? (
-        <Html center distanceFactor={8} position={[0, moon.radius + 0.2, 0]}>
+        <Html
+          center
+          distanceFactor={8}
+          position={[0, moon.radius + 0.2, 0]}
+          zIndexRange={[2, 0]}
+        >
           <div
             className={`planet-label ${isHovered || isEarlyCareerMoon ? "planet-label--active" : ""}`}
+            style={{ pointerEvents: "none" }}
           >
             <strong>{moon.label}</strong>
             {isHovered ? <span>{moon.subtitle}</span> : null}

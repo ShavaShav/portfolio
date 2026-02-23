@@ -148,6 +148,7 @@ export function SolarSystem({
           flyToPlanetId={flyToPlanetId}
           isEntering={isEntering}
           isFlyingHome={isFlyingHome}
+          isMobile={isMobile}
           onArriveHome={onArriveHome}
           onArrivePlanet={onArrivePlanet}
           onDisengagePlanet={onDisengagePlanet}
