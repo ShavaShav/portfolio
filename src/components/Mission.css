@@ -1,4 +1,4 @@
-﻿.mission-view {
+.mission-view {
   display: grid;
   gap: 14px;
   color: #d8ffe9;
@@ -28,10 +28,87 @@
 .mission-step {
   border: 1px solid rgba(0, 255, 136, 0.2);
   border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: rgba(0, 255, 136, 0.04);
+}
+
+.mission-step__choices {
+  display: grid;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.mission-choice {
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 8px;
+  background: rgba(0, 255, 136, 0.08);
+  color: #e7fff4;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.mission-choice:hover:not(:disabled) {
+  background: rgba(0, 255, 136, 0.16);
+  border-color: rgba(0, 255, 136, 0.52);
+  transform: translateY(-1px);
+}
+
+.mission-choice:disabled {
+  cursor: default;
+}
+
+.mission-choice.is-selected {
+  border-color: rgba(214, 224, 255, 0.55);
+  background: rgba(214, 224, 255, 0.14);
+}
+
+.mission-choice.is-correct {
+  border-color: rgba(84, 255, 165, 0.68);
+  background: rgba(84, 255, 165, 0.2);
+}
+
+.mission-choice.is-incorrect {
+  border-color: rgba(255, 198, 104, 0.74);
+  background: rgba(255, 198, 104, 0.22);
+}
+
+.mission-step__feedback,
+.mission-step__resolution {
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  border-radius: 8px;
+  background: rgba(2, 8, 10, 0.45);
   padding: 8px;
   display: grid;
   gap: 6px;
-  background: rgba(0, 255, 136, 0.04);
+}
+
+.mission-step__feedback.is-correct {
+  border-color: rgba(84, 255, 165, 0.6);
+  background: rgba(84, 255, 165, 0.1);
+}
+
+.mission-step__feedback.is-incorrect {
+  border-color: rgba(255, 198, 104, 0.6);
+  background: rgba(255, 198, 104, 0.1);
+}
+
+.mission-step__prompt {
+  color: rgba(207, 255, 232, 0.82);
+}
+
+.mission-view__progress-hint {
+  color: rgba(207, 255, 232, 0.78);
+  font-size: 12px;
 }
 
 .mission-view__btn {

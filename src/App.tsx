@@ -294,6 +294,7 @@ function CockpitExperience() {
       reducedQuality={isLowQuality}
       particleCount={isLowQuality ? 0 : isMobile ? 50 : 200}
       isMobile={isMobile}
+      qualityTier={performanceTier}
     />
   );
 

@@ -1,9 +1,11 @@
-﻿import { Html, Ring } from "@react-three/drei";
+import { Html, Ring } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Group, Mesh } from "three";
 import { DoubleSide } from "three";
 import { getPlanetPositionAtTime, type PlanetConfig } from "../../data/planets";
+import type { QualityTier } from "../../hooks/useDeviceCapability";
+import { createPlanetMaterial } from "../../shaders/planet/createPlanetMaterial";
 import { Moon } from "./Moon";
 
 type PlanetProps = {
@@ -11,12 +13,34 @@ type PlanetProps = {
   onSelect: (planetId: string) => void;
   visited?: boolean;
   isMobile?: boolean;
+  qualityTier?: QualityTier;
 };
 
-export function Planet({ planet, onSelect, visited = false, isMobile = false }: PlanetProps) {
+export function Planet({
+  planet,
+  onSelect,
+  visited = false,
+  isMobile = false,
+  qualityTier = "high",
+}: PlanetProps) {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
+  const cloudRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
+
+  const materialBundle = useMemo(
+    () =>
+      createPlanetMaterial(
+        {
+          baseColor: planet.color,
+          emissiveColor: planet.emissive,
+          radius: planet.radius,
+          visual: planet.visual,
+        },
+        qualityTier,
+      ),
+    [planet.color, planet.emissive, planet.radius, planet.visual, qualityTier],
+  );
 
   useEffect(() => {
     document.body.style.cursor = isHovered ? "pointer" : "default";
@@ -25,6 +49,16 @@ export function Planet({ planet, onSelect, visited = false, isMobile = false }: 
       document.body.style.cursor = "default";
     };
   }, [isHovered]);
+
+  useEffect(() => {
+    materialBundle.setHover(isHovered);
+  }, [isHovered, materialBundle]);
+
+  useEffect(() => {
+    return () => {
+      materialBundle.dispose();
+    };
+  }, [materialBundle]);
 
   useFrame(({ clock }, delta) => {
     const elapsed = clock.getElapsedTime();
@@ -41,11 +75,19 @@ export function Planet({ planet, onSelect, visited = false, isMobile = false }: 
     if (meshRef.current) {
       meshRef.current.rotation.y += delta * 0.45;
     }
+
+    if (cloudRef.current) {
+      cloudRef.current.rotation.y +=
+        delta * (0.08 + materialBundle.cloudRotationSpeed);
+    }
+
+    materialBundle.update(elapsed);
   });
 
   return (
     <group ref={groupRef}>
       <mesh
+        material={materialBundle.surfaceMaterial}
         onClick={(event) => {
           event.stopPropagation();
           onSelect(planet.id);
@@ -60,15 +102,34 @@ export function Planet({ planet, onSelect, visited = false, isMobile = false }: 
         }}
         ref={meshRef}
       >
-        <sphereGeometry args={[planet.radius, 36, 36]} />
-        <meshStandardMaterial
-          color={planet.color}
-          emissive={planet.emissive}
-          emissiveIntensity={isHovered ? 1.25 : 0.55}
-          metalness={0.2}
-          roughness={0.65}
+        <sphereGeometry
+          args={[
+            planet.radius,
+            materialBundle.geometrySegments,
+            materialBundle.geometrySegments,
+          ]}
         />
       </mesh>
+
+      {materialBundle.atmosphereMaterial ? (
+        <mesh material={materialBundle.atmosphereMaterial}>
+          <sphereGeometry
+            args={[
+              planet.radius * materialBundle.atmosphereScale,
+              36,
+              36,
+            ]}
+          />
+        </mesh>
+      ) : null}
+
+      {materialBundle.cloudMaterial ? (
+        <mesh material={materialBundle.cloudMaterial} ref={cloudRef}>
+          <sphereGeometry
+            args={[planet.radius * materialBundle.cloudScale, 42, 42]}
+          />
+        </mesh>
+      ) : null}
 
       {/* Larger invisible touch target for mobile */}
       {isMobile ? (

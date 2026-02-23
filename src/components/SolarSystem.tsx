@@ -4,6 +4,7 @@ import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
 import { OORT_CLOUD } from "../data/oortCloud";
+import type { QualityTier } from "../hooks/useDeviceCapability";
 import { AmbientParticles } from "./three/AmbientParticles";
 import { CameraController } from "./three/CameraController";
 import { CometSystem } from "./three/CometSystem";
@@ -35,6 +36,7 @@ type SolarSystemProps = {
   particleCount?: number;
   visitedPlanets?: Set<string>;
   isMobile?: boolean;
+  qualityTier?: QualityTier;
 };
 
 export function SolarSystem({
@@ -58,6 +60,7 @@ export function SolarSystem({
   particleCount = 200,
   visitedPlanets,
   isMobile = false,
+  qualityTier = "high",
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -121,6 +124,7 @@ export function SolarSystem({
             key={planet.id}
             onSelect={handlePlanetSelect}
             planet={planet}
+            qualityTier={qualityTier}
             visited={visitedPlanets?.has(planet.id) ?? false}
           />
         ))}

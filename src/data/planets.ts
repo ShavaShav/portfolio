@@ -1,5 +1,32 @@
 import { OORT_CLOUD } from "./oortCloud";
 
+export type PlanetSurfaceType = "rocky" | "gas" | "crystalline" | "terran";
+
+export type PlanetCloudVisualConfig = {
+  enabled: boolean;
+  color: string;
+  opacity: number;
+  speed: number;
+  noiseScale: number;
+};
+
+export type PlanetVisualConfig = {
+  palette: [string, string, string];
+  oceanColor?: string;
+  landThreshold?: number;
+  atmosphereColor: string;
+  atmosphereIntensity: number;
+  noiseScale: number;
+  detailScale: number;
+  banding: number;
+  displacementScale: number;
+  emissiveDetailColor: string;
+  emissiveDetailStrength: number;
+  seed: number;
+  surfaceType: PlanetSurfaceType;
+  clouds?: PlanetCloudVisualConfig;
+};
+
 export type PlanetConfig = {
   id: string;
   label: string;
@@ -16,6 +43,7 @@ export type PlanetConfig = {
   hasMission: boolean;
   companionGreeting: string;
   moons?: MoonConfig[];
+  visual?: PlanetVisualConfig;
 };
 
 export type MoonConfig = {
@@ -46,6 +74,19 @@ export const PLANETS: PlanetConfig[] = [
     hasMission: true,
     companionGreeting:
       "Welcome to Obviant - this is where I'm working now. A small military contracting startup where I wear a lot of hats. Want to see what I've been building, or jump into a mission?",
+    visual: {
+      palette: ["#541209", "#b63c1d", "#f3772f"],
+      atmosphereColor: "#ff8f55",
+      atmosphereIntensity: 0.56,
+      noiseScale: 3.9,
+      detailScale: 9.6,
+      banding: 1.25,
+      displacementScale: 0.016,
+      emissiveDetailColor: "#ff7b3c",
+      emissiveDetailStrength: 0.24,
+      seed: 11.7,
+      surfaceType: "rocky",
+    },
   },
   {
     id: "aws",
@@ -63,6 +104,26 @@ export const PLANETS: PlanetConfig[] = [
     hasMission: true,
     companionGreeting:
       "Amazon Web Services - I built accessibility infrastructure here that touched 40+ AWS services. The mission on this planet is about a performance problem I solved. Curious?",
+    visual: {
+      palette: ["#5f3609", "#d9851f", "#ffe2a0"],
+      atmosphereColor: "#ffd28a",
+      atmosphereIntensity: 0.86,
+      noiseScale: 2.55,
+      detailScale: 5.8,
+      banding: 3.2,
+      displacementScale: 0,
+      emissiveDetailColor: "#fff1c3",
+      emissiveDetailStrength: 0.12,
+      seed: 24.3,
+      surfaceType: "gas",
+      clouds: {
+        enabled: true,
+        color: "#ffe8b9",
+        opacity: 0.42,
+        speed: 0.2,
+        noiseScale: 3.45,
+      },
+    },
   },
   {
     id: "riskfuel",
@@ -79,6 +140,19 @@ export const PLANETS: PlanetConfig[] = [
     hasMission: true,
     companionGreeting:
       "Riskfuel Analytics - this is where I got deep into distributed systems and Kubernetes. I built a platform that made ML models ship 80% faster. The mission here is about scaling that to 1000+ workloads.",
+    visual: {
+      palette: ["#26174f", "#6033cd", "#a071ff"],
+      atmosphereColor: "#cb9fff",
+      atmosphereIntensity: 0.74,
+      noiseScale: 4.35,
+      detailScale: 12.4,
+      banding: 2.05,
+      displacementScale: 0.014,
+      emissiveDetailColor: "#8ce7ff",
+      emissiveDetailStrength: 0.24,
+      seed: 38.8,
+      surfaceType: "rocky",
+    },
   },
   {
     id: "early-career",
@@ -137,6 +211,28 @@ export const PLANETS: PlanetConfig[] = [
     ],
     companionGreeting:
       "My early career - internships and first full-time roles. This is where I learned the fundamentals. The mission here covers a zero-downtime database migration I pulled off at T&T Power Group.",
+    visual: {
+      palette: ["#3d8c3f", "#5dbb57", "#9fdc8f"],
+      oceanColor: "#1f63aa",
+      landThreshold: 0.47,
+      atmosphereColor: "#8efde0",
+      atmosphereIntensity: 0.92,
+      noiseScale: 3.15,
+      detailScale: 8.7,
+      banding: 1.55,
+      displacementScale: 0.006,
+      emissiveDetailColor: "#80ebff",
+      emissiveDetailStrength: 0.1,
+      seed: 47.1,
+      surfaceType: "terran",
+      clouds: {
+        enabled: true,
+        color: "#defef4",
+        opacity: 0.36,
+        speed: 0.24,
+        noiseScale: 4.05,
+      },
+    },
   },
 ];
 

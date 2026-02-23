@@ -7,6 +7,7 @@ import {
 import { getPlanetById } from "../../data/planets";
 import { getMissionForPlanet } from "../../data/missions";
 import { useAppDispatch, useAppState } from "../../state/AppState";
+import { subscribeToCompanionMessages } from "../../state/companionBus";
 import { CockpitScreen } from "./CockpitScreen";
 
 type CompanionScreenProps = {
@@ -65,6 +66,15 @@ export function CompanionScreen({
   useEffect(() => {
     dispatch({ type: "COMPANION_SET_TYPING", isTyping: isLoading });
   }, [isLoading, dispatch]);
+
+  useEffect(() => {
+    return subscribeToCompanionMessages((message) => {
+      addMessage({
+        role: message.role ?? "assistant",
+        content: message.content,
+      });
+    });
+  }, [addMessage]);
 
   function buildContext(): CompanionContext {
     const planet = planetId ? getPlanetById(planetId) : undefined;

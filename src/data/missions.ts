@@ -1,8 +1,16 @@
-﻿export type MissionStep = {
+export type MissionChoice = {
+  label: string;
+  isCorrect: boolean;
+  feedback: string;
+};
+
+export type MissionStep = {
   title: string;
   challenge: string;
-  action: string;
+  choices: MissionChoice[];
+  correctAction: string;
   outcome: string;
+  hint?: string;
 };
 
 export type Mission = {
@@ -20,42 +28,119 @@ export const MISSIONS: Mission[] = [
   {
     id: "obviant-mission",
     planetId: "obviant",
-    title: "Mission: Field-Ready Delivery Pipeline",
+    title: "Mission: Contract Signal Fusion",
     briefing:
-      "Stabilize a fast-moving defense workflow where product requirements and operational constraints change weekly.",
+      "Connect fragmented government contracting and budget data so operators can make decisions from one reliable picture.",
     scenario:
-      "A new operator workflow needs to move from concept to field trial quickly without compromising reliability.",
+      "Contract awards, modifications, and agency budget lines all exist in different systems with mismatched identifiers and reporting delays.",
     steps: [
       {
-        title: "Map Risk Boundaries",
+        title: "Create A Canonical Join Layer",
         challenge:
-          "The feature crosses frontend, backend, and integration layers with unclear failure ownership.",
-        action:
-          "Defined service boundaries and explicit failure envelopes before implementation began.",
+          "The same vendor and contract appear differently across procurement and budget datasets, making direct joins unreliable.",
+        choices: [
+          {
+            label:
+              "Build a canonical key model with normalized vendor, contract, and agency IDs plus confidence scoring.",
+            isCorrect: true,
+            feedback:
+              "Correct. A canonical model plus confidence keeps links explainable while handling real-world identifier drift.",
+          },
+          {
+            label:
+              "Keep datasets separate and ask analysts to manually reconcile differences during reporting.",
+            isCorrect: false,
+            feedback:
+              "Manual reconciliation does not scale and guarantees inconsistent answers under time pressure.",
+          },
+          {
+            label:
+              "Require exact contract-number matches and drop rows that do not align perfectly.",
+            isCorrect: false,
+            feedback:
+              "Exact-only matching discards high-value records where format differences are the main issue.",
+          },
+        ],
+        correctAction:
+          "Implemented a canonical crosswalk service that maps source identifiers into a shared contract entity with provenance metadata.",
         outcome:
-          "Reduced downstream ambiguity and prevented duplicate fallback logic.",
+          "Cross-source joins became reliable enough for automation while still exposing confidence and source traceability.",
+        hint:
+          "Think about preserving imperfect matches safely instead of choosing manual review or strict drops.",
       },
       {
-        title: "Ship Thin Vertical Slice",
-        challenge: "Long release cycles delayed feedback from domain experts.",
-        action:
-          "Delivered a minimal end-to-end path with instrumentation in the first sprint.",
+        title: "Flag Budget-Contract Drift",
+        challenge:
+          "Spending obligations and budget plans diverge over time, but the team needs early warning before it becomes a delivery risk.",
+        choices: [
+          {
+            label:
+              "Track obligation-to-plan deltas by fiscal period and alert on sustained variance with contextual tags.",
+            isCorrect: true,
+            feedback:
+              "Correct. Drift over time is a stronger signal than one-off transactions and supports better operational response.",
+          },
+          {
+            label:
+              "Trigger alerts only when a single transaction exceeds a fixed dollar amount.",
+            isCorrect: false,
+            feedback:
+              "Large one-off values are noisy and miss cumulative drift patterns across many smaller transactions.",
+          },
+          {
+            label:
+              "Skip anomaly detection and rely on quarterly reviews from procurement teams.",
+            isCorrect: false,
+            feedback:
+              "Quarterly review cadence is too slow for active contract execution decisions.",
+          },
+        ],
+        correctAction:
+          "Built period-over-period variance scoring with mission tags, then surfaced alerts only when drift persisted beyond configurable thresholds.",
         outcome:
-          "Got real operator feedback early and redirected scope before expensive rework.",
+          "Teams could prioritize investigations earlier and avoid late-cycle surprises in contract execution.",
+        hint:
+          "A single threshold on transaction size is weaker than trend-aware variance detection.",
       },
       {
-        title: "Harden For Operations",
-        challenge: "Prototype behavior under stress was inconsistent.",
-        action:
-          "Added deterministic retries, telemetry dashboards, and release checklists.",
+        title: "Deliver Explainable Operational Views",
+        challenge:
+          "Decision-makers need to inspect how a budget line ties back to a contract event without wading through raw tables.",
+        choices: [
+          {
+            label:
+              "Expose a cross-reference API with drill-through provenance from budget line to contract actions.",
+            isCorrect: true,
+            feedback:
+              "Correct. Explainable drill-through builds trust and speeds up decision-making across mixed technical audiences.",
+          },
+          {
+            label:
+              "Ship nightly CSV exports and let each team build local pivot-table workflows.",
+            isCorrect: false,
+            feedback:
+              "CSV handoffs fragment logic and quickly diverge from the source of truth.",
+          },
+          {
+            label:
+              "Hide uncertain links entirely so the dashboard only shows 100% confidence joins.",
+            isCorrect: false,
+            feedback:
+              "Suppressing uncertainty makes the system look cleaner but removes crucial operational context.",
+          },
+        ],
+        correctAction:
+          "Delivered a mission-facing data layer that returns linked budget and contract entities with confidence and source lineage for every relationship.",
         outcome:
-          "Feature graduated to repeatable deployment with observability baked in.",
+          "Stakeholders could move from static reporting to interactive investigation with traceable evidence.",
+        hint:
+          "The best answer gives transparency into both the link and the evidence behind it.",
       },
     ],
     outcome:
-      "Delivery became faster without sacrificing confidence: tighter loops, cleaner ownership, and lower operational risk.",
+      "Obviant teams gained a unified, explainable data view across contracting and budget systems, enabling faster and more confident decisions.",
     copilotPrompt:
-      "Focus on cross-functional ownership and reliability-first execution in startup defense contexts.",
+      "Focus on data integration strategy, explainability, and operational risk control in government contracting contexts.",
   },
   {
     id: "aws-mission",
@@ -69,29 +154,104 @@ export const MISSIONS: Mission[] = [
       {
         title: "Trace Critical Paths",
         challenge:
-          "Performance issues were spread across rendering, API calls, and query shape.",
-        action:
-          "Profiled user journeys and isolated the highest-impact query and hydration costs.",
+          "Latency came from multiple layers, and optimization efforts were scattered.",
+        choices: [
+          {
+            label:
+              "Profile real user flows first, then rank query and hydration bottlenecks by impact.",
+            isCorrect: true,
+            feedback:
+              "Correct. Prioritizing by measured user-path impact prevents low-value tuning work.",
+          },
+          {
+            label:
+              "Rewrite all dashboard components before collecting performance traces.",
+            isCorrect: false,
+            feedback:
+              "Rewrites without traces are expensive and often miss the dominant bottleneck.",
+          },
+          {
+            label:
+              "Scale backend instances immediately and revisit frontend performance later.",
+            isCorrect: false,
+            feedback:
+              "Capacity increases can hide symptoms but do not solve inefficient data flow and rendering.",
+          },
+        ],
+        correctAction:
+          "Captured end-to-end traces for the highest-traffic flows and isolated query shape plus hydration costs as the top latency drivers.",
         outcome:
-          "Identified the top two bottlenecks responsible for the majority of latency.",
+          "Optimization work was focused on a short list of high-impact bottlenecks.",
+        hint:
+          "Find where users actually wait before deciding where to optimize.",
       },
       {
-        title: "Type-Safe Query Contracts",
+        title: "Stabilize Query Contracts",
         challenge:
-          "Query params drifted between pages and caused cache misses.",
-        action:
-          "Introduced TypeScript-enforced query parameter contracts and normalized URL state.",
+          "Parameter drift between pages caused poor cache reuse and redundant requests.",
+        choices: [
+          {
+            label:
+              "Enforce typed query contracts and normalize URL parameter ordering.",
+            isCorrect: true,
+            feedback:
+              "Correct. Stable contracts improve cache hit rate and reduce duplicate fetches.",
+          },
+          {
+            label:
+              "Increase cache TTL only, even if request keys remain inconsistent.",
+            isCorrect: false,
+            feedback:
+              "Longer TTL cannot fix key instability and can introduce stale-data issues.",
+          },
+          {
+            label:
+              "Disable caching for dynamic pages to avoid key mismatch edge cases.",
+            isCorrect: false,
+            feedback:
+              "Disabling caching removes one of the strongest latency levers for dashboard workloads.",
+          },
+        ],
+        correctAction:
+          "Introduced TypeScript-validated query schemas and canonicalized URL state before hitting API boundaries.",
         outcome:
-          "Stabilized cache behavior and reduced expensive duplicate fetches.",
+          "Request deduplication improved and cache behavior became predictable across entry points.",
+        hint:
+          "Caching only works well when request identity is deterministic.",
       },
       {
-        title: "UI and Data Layer Optimization",
+        title: "Improve Perceived Responsiveness",
         challenge:
-          "Large payloads and synchronous rendering blocked interactivity.",
-        action:
-          "Added selective prefetching, memoized transforms, and chunked rendering.",
+          "Heavy synchronous transforms and large payload rendering still blocked interaction.",
+        choices: [
+          {
+            label:
+              "Use selective prefetching, memoized transforms, and chunked rendering for large views.",
+            isCorrect: true,
+            feedback:
+              "Correct. This reduces blocking work and keeps interactions responsive during data-heavy updates.",
+          },
+          {
+            label:
+              "Render the entire payload immediately so users never see intermediate states.",
+            isCorrect: false,
+            feedback:
+              "Rendering everything at once maximizes blocking time and hurts interactivity.",
+          },
+          {
+            label:
+              "Move all transforms to the backend and return one giant denormalized payload.",
+            isCorrect: false,
+            feedback:
+              "Oversized payloads shift cost rather than reducing it and often worsen time-to-interact.",
+          },
+        ],
+        correctAction:
+          "Applied staged rendering and targeted prefetch windows while memoizing expensive transforms in the UI layer.",
         outcome:
-          "Median interaction moved to sub-200ms and the tool became operationally usable.",
+          "Median interactions dropped to sub-200ms and dashboards became operationally reliable.",
+        hint:
+          "Responsiveness is often about reducing blocking work, not just reducing total work.",
       },
     ],
     outcome:
@@ -109,30 +269,106 @@ export const MISSIONS: Mission[] = [
       "Model teams needed to run more experiments and ship faster, but infrastructure orchestration was the bottleneck.",
     steps: [
       {
-        title: "Workflow Decomposition",
+        title: "Decompose Workflow Stages",
         challenge:
-          "Monolithic execution pipelines made retries and diagnostics painful.",
-        action:
-          "Split workflows into composable stages with explicit state transitions.",
+          "Monolithic execution pipelines made failures hard to isolate and retries expensive.",
+        choices: [
+          {
+            label:
+              "Split pipelines into composable stages with explicit state transitions and retry points.",
+            isCorrect: true,
+            feedback:
+              "Correct. Stage boundaries enable targeted retries and clearer diagnostics.",
+          },
+          {
+            label:
+              "Keep one large workflow and add more timeout/retry wrappers around it.",
+            isCorrect: false,
+            feedback:
+              "Wrapping a monolith still leaves poor fault isolation and expensive retries.",
+          },
+          {
+            label:
+              "Run all models in serial order to reduce scheduler complexity.",
+            isCorrect: false,
+            feedback:
+              "Serial execution avoids complexity but destroys throughput and responsiveness.",
+          },
+        ],
+        correctAction:
+          "Redesigned job orchestration into stage-level state machines with idempotent checkpoints.",
         outcome:
-          "Enabled selective retries and significantly faster troubleshooting.",
+          "Recovery became faster and operational debugging moved from hours to minutes.",
+        hint:
+          "The strongest option improves both retry precision and observability.",
       },
       {
-        title: "Cluster-Aware Scheduling",
+        title: "Handle Cluster Contention",
         challenge:
-          "Workload spikes created resource contention and unpredictable queue times.",
-        action: "Added Kubernetes-aware queueing and capacity guardrails.",
+          "Burst traffic overwhelmed shared resources and queue times became unpredictable.",
+        choices: [
+          {
+            label:
+              "Add Kubernetes-aware scheduling with queue priorities and capacity guardrails.",
+            isCorrect: true,
+            feedback:
+              "Correct. Cluster-aware controls smooth burst behavior and protect critical workloads.",
+          },
+          {
+            label:
+              "Use first-in-first-out scheduling only and trust workers to auto-balance.",
+            isCorrect: false,
+            feedback:
+              "Pure FIFO ignores workload classes and amplifies tail latency during spikes.",
+          },
+          {
+            label:
+              "Disable workload limits so jobs can grab resources as needed.",
+            isCorrect: false,
+            feedback:
+              "Removing limits causes noisy-neighbor failures and lowers platform reliability.",
+          },
+        ],
+        correctAction:
+          "Implemented queue stratification and resource quotas tied to workload criticality and cluster headroom.",
         outcome:
-          "Improved throughput consistency and lowered failure rates during peak load.",
+          "Throughput stabilized and failure rates dropped during peak usage windows.",
+        hint:
+          "Think in terms of fairness plus protection, not unrestricted resource grabs.",
       },
       {
-        title: "Operational Visibility",
+        title: "Make Health Actionable",
         challenge:
-          "Teams lacked visibility into model job health and regression patterns.",
-        action:
-          "Rolled out Prometheus/Grafana dashboards and health probes per stage.",
+          "Teams lacked a shared view of regressions across pipeline stages and environments.",
+        choices: [
+          {
+            label:
+              "Expose stage-level metrics and probes with dashboard drill-down and alert thresholds.",
+            isCorrect: true,
+            feedback:
+              "Correct. Fine-grained telemetry turns incidents into fast, targeted remediation.",
+          },
+          {
+            label:
+              "Track only final job status to keep monitoring dashboards simple.",
+            isCorrect: false,
+            feedback:
+              "End-state-only monitoring hides where failures emerge and slows response.",
+          },
+          {
+            label:
+              "Depend on ad-hoc log searches when users report failed experiments.",
+            isCorrect: false,
+            feedback:
+              "Reactive log hunts create long MTTR and inconsistent incident handling.",
+          },
+        ],
+        correctAction:
+          "Rolled out per-stage health probes and Prometheus/Grafana views tied to operational SLO thresholds.",
         outcome:
-          "Teams could detect and resolve production issues before user impact.",
+          "Teams detected regressions earlier and resolved incidents before user-facing impact.",
+        hint:
+          "Actionable telemetry must show where degradation starts, not just that it happened.",
       },
     ],
     outcome:
@@ -150,29 +386,106 @@ export const MISSIONS: Mission[] = [
       "A schema upgrade was required, but downtime would block dispatch and service management.",
     steps: [
       {
-        title: "Dual-Write Preparation",
+        title: "Prepare Dual-Write Safety",
         challenge:
-          "Legacy and target schemas needed to stay consistent during migration.",
-        action:
-          "Implemented compatibility layer with dual-write and verification logs.",
+          "Legacy and target schemas both needed to stay consistent while traffic remained live.",
+        choices: [
+          {
+            label:
+              "Introduce a compatibility layer with dual-write and verification logs.",
+            isCorrect: true,
+            feedback:
+              "Correct. Dual-write with verification gives rollback flexibility and consistency checks.",
+          },
+          {
+            label:
+              "Freeze writes during migration windows and replay missed changes later.",
+            isCorrect: false,
+            feedback:
+              "Write freezes conflict with zero-downtime requirements and increase operational risk.",
+          },
+          {
+            label:
+              "Switch all clients to the new schema immediately, then patch issues in production.",
+            isCorrect: false,
+            feedback:
+              "Big-bang cutovers create a large blast radius and reduce recovery options.",
+          },
+        ],
+        correctAction:
+          "Built a compatibility layer that dual-wrote records and logged parity checks across old and new structures.",
         outcome:
-          "Allowed both schemas to stay in sync while traffic remained live.",
+          "Both schemas remained synchronized while the system continued serving live traffic.",
+        hint:
+          "You need reversibility and verification before any cutover decision.",
       },
       {
-        title: "Backfill and Validation",
+        title: "Backfill With Validation Gates",
         challenge:
-          "Historical data quality issues risked corrupting the new model.",
-        action:
-          "Ran incremental backfill batches with automated reconciliation checks.",
+          "Historical records contained edge-case quality issues that could corrupt the target model.",
+        choices: [
+          {
+            label:
+              "Run incremental backfills with reconciliation checks and halt-on-drift thresholds.",
+            isCorrect: true,
+            feedback:
+              "Correct. Incremental gates reduce blast radius and catch anomalies early.",
+          },
+          {
+            label:
+              "Bulk migrate all history in one pass to shorten total migration duration.",
+            isCorrect: false,
+            feedback:
+              "A one-shot backfill hides errors until late and makes rollback far harder.",
+          },
+          {
+            label:
+              "Skip historical data cleanup and focus only on new records after go-live.",
+            isCorrect: false,
+            feedback:
+              "Ignoring legacy quality debt compromises downstream reporting and trust.",
+          },
+        ],
+        correctAction:
+          "Executed phased backfills with automated reconciliation reports and stop conditions for mismatch spikes.",
         outcome:
-          "Detected edge-case mismatches early and corrected them safely.",
+          "Data quality issues were isolated and corrected before they could impact production behavior.",
+        hint:
+          "Safer migration favors controlled batches plus explicit quality gates.",
       },
       {
-        title: "Cutover Control",
-        challenge: "Cutover window had to be short and reversible.",
-        action:
-          "Executed phased traffic switch with rollback gates and monitoring.",
-        outcome: "Completed migration with no production downtime.",
+        title: "Control Cutover And Rollback",
+        challenge:
+          "The final switch had to be short, measurable, and reversible if metrics degraded.",
+        choices: [
+          {
+            label:
+              "Use phased traffic shifting with rollback checkpoints and live health monitors.",
+            isCorrect: true,
+            feedback:
+              "Correct. Progressive cutover keeps risk bounded and preserves fast rollback.",
+          },
+          {
+            label:
+              "Perform a full cutover overnight and rely on support escalation if issues appear.",
+            isCorrect: false,
+            feedback:
+              "All-at-once switches trade speed for a much larger recovery burden.",
+          },
+          {
+            label:
+              "Keep both databases permanently active with no primary ownership.",
+            isCorrect: false,
+            feedback:
+              "Long-term dual-primary operation increases complexity and consistency risk.",
+          },
+        ],
+        correctAction:
+          "Rolled traffic in stages with explicit rollback gates tied to replication lag, error rate, and dispatch throughput.",
+        outcome:
+          "Migration completed with no production downtime and clear confidence in the new data model.",
+        hint:
+          "Choose the path that limits blast radius and keeps rollback quick.",
       },
     ],
     outcome:
