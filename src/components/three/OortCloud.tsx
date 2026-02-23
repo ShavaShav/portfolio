@@ -135,7 +135,7 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
   useFrame(({ clock }, delta) => {
     if (ringRef.current) {
       const elapsed = clock.getElapsedTime();
-      ringRef.current.rotation.y += delta * 0.0035;
+      ringRef.current.rotation.y -= delta * 0.0035;
       ringRef.current.rotation.x = Math.sin(elapsed * 0.05) * 0.012;
     }
   });
