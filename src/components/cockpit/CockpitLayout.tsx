@@ -12,6 +12,7 @@ type CockpitLayoutProps = {
     data: ReactNode;
     companion: ReactNode;
     status: ReactNode;
+    flight?: ReactNode;
   };
   panelTitles?: Partial<Record<PanelId, string>>;
   panelPowered?: Partial<Record<PanelId, boolean>>;
@@ -25,6 +26,7 @@ const DEFAULT_PANEL_TITLES: Record<PanelId, string> = {
   data: "DATA",
   companion: "COMPANION COMMS",
   status: "STATUS",
+  flight: "FLIGHT CONTROLS",
 };
 
 export function CockpitLayout({
@@ -45,25 +47,31 @@ export function CockpitLayout({
     return () => window.cancelAnimationFrame(rafId);
   }, []);
 
-  const renderPanel = (panelId: PanelId, content: ReactNode) => (
-    <PanelWindow
-      title={panelTitles?.[panelId] ?? DEFAULT_PANEL_TITLES[panelId]}
-      powered={panelPowered?.[panelId] ?? true}
-      popout={panelPopouts?.[panelId]}
-      x={layouts[panelId].x}
-      y={layouts[panelId].y}
-      width={layouts[panelId].width}
-      height={layouts[panelId].height}
-      isMinimized={layouts[panelId].minimized}
-      onMinimize={() => toggleMinimize(panelId)}
-      onDragStop={(x, y) => updatePanel(panelId, { x, y })}
-      onResizeStop={(width, height, x, y) =>
-        updatePanel(panelId, { width, height, x, y })
-      }
-    >
-      {content}
-    </PanelWindow>
-  );
+  const renderPanel = (panelId: PanelId, content: ReactNode) => {
+    if (!content) {
+      return null;
+    }
+
+    return (
+      <PanelWindow
+        title={panelTitles?.[panelId] ?? DEFAULT_PANEL_TITLES[panelId]}
+        powered={panelPowered?.[panelId] ?? true}
+        popout={panelPopouts?.[panelId]}
+        x={layouts[panelId].x}
+        y={layouts[panelId].y}
+        width={layouts[panelId].width}
+        height={layouts[panelId].height}
+        isMinimized={layouts[panelId].minimized}
+        onMinimize={() => toggleMinimize(panelId)}
+        onDragStop={(x, y) => updatePanel(panelId, { x, y })}
+        onResizeStop={(width, height, x, y) =>
+          updatePanel(panelId, { width, height, x, y })
+        }
+      >
+        {content}
+      </PanelWindow>
+    );
+  };
 
   return (
     <div className={`cockpit-layout ${booted ? "is-booted" : ""}`}>
@@ -80,6 +88,7 @@ export function CockpitLayout({
       {renderPanel("data", screens.data)}
       {renderPanel("companion", screens.companion)}
       {renderPanel("status", screens.status)}
+      {renderPanel("flight", screens.flight)}
     </div>
   );
 }

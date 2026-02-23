@@ -1,22 +1,20 @@
 .flight-hint-overlay {
-  position: fixed;
-  /* Sit below the nav panel (left side) at the vertical midpoint of the canvas area */
-  bottom: 200px;
-  left: 280px;
-  z-index: 7;
+  position: relative;
+  box-sizing: border-box;
+  height: 100%;
+  width: 100%;
   padding: 10px 14px;
-  border: 1px solid rgba(0, 255, 136, 0.25);
-  border-radius: 8px;
+  border: none;
+  border-radius: 0;
   background: rgba(4, 6, 13, 0.82);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(4px);
   color: #c8ffea;
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.4;
-  pointer-events: none;
   user-select: none;
-  min-width: 200px;
-  animation: flight-hint-fadein 0.4s ease both;
+  animation: none;
+  overflow: auto;
 }
 
 .flight-hint-overlay--locked {

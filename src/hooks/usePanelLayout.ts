@@ -8,7 +8,7 @@ export type PanelLayout = {
   minimized: boolean;
 };
 
-export type PanelId = "nav" | "data" | "companion" | "status";
+export type PanelId = "nav" | "data" | "companion" | "status" | "flight";
 
 export type PanelLayouts = Record<PanelId, PanelLayout>;
 
@@ -41,6 +41,25 @@ function resolveDefaults(): PanelLayouts {
       height: 165,
       minimized: false,
     },
+    flight: {
+      x: vw - 260 - 14,
+      y: vh - 280 - 14,
+      width: 260,
+      height: 220,
+      minimized: false,
+    },
+  };
+}
+
+function normalizeLayouts(stored: Partial<PanelLayouts>): PanelLayouts {
+  const defaults = resolveDefaults();
+
+  return {
+    nav: { ...defaults.nav, ...stored.nav },
+    data: { ...defaults.data, ...stored.data },
+    companion: { ...defaults.companion, ...stored.companion },
+    status: { ...defaults.status, ...stored.status },
+    flight: { ...defaults.flight, ...stored.flight },
   };
 }
 
@@ -49,7 +68,7 @@ export function usePanelLayout() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        return JSON.parse(stored) as PanelLayouts;
+        return normalizeLayouts(JSON.parse(stored) as Partial<PanelLayouts>);
       }
     } catch {
       // Ignore parse issues.

@@ -106,7 +106,6 @@ type ExplosionEffect = {
 type CrosshairHit = {
   entityId: string;
   targetLabel: string | null;
-  point: Vector3;
 };
 
 type ExplosionPulseProps = {
@@ -123,6 +122,7 @@ const MAX_ASTEROID_SIZE = 0.14;
 const MIN_ASTEROID_SIZE = 0.028;
 const ASTEROID_SPLIT_THRESHOLD = 0.07;
 const ASTEROID_SPLIT_FACTOR = 0.62;
+const LASER_COLLISION_PAD = 0.04;
 
 const ASTEROID_COLORS = [
   "#9aa4b1",
@@ -259,6 +259,12 @@ export function EncounterSystem({
 
   const tmpLookRef = useRef(new Vector3());
   const tmpDirRef = useRef(new Vector3());
+  const shotStartRef = useRef(new Vector3());
+  const shotEndRef = useRef(new Vector3());
+  const collisionCenterRef = useRef(new Vector3());
+  const collisionClosestRef = useRef(new Vector3());
+  const collisionSegRef = useRef(new Vector3());
+  const collisionToPointRef = useRef(new Vector3());
 
   const createId = useCallback((prefix: string) => {
     return `${prefix}-${nextIdRef.current++}`;
@@ -513,12 +519,56 @@ export function EncounterSystem({
           typeof intersection.object.userData.targetLabel === "string"
             ? (intersection.object.userData.targetLabel as string)
             : null,
-        point: intersection.point.clone(),
       };
     }
 
     return null;
   }, [camera]);
+
+  const findSegmentHit = useCallback((start: Vector3, end: Vector3) => {
+    let bestEntityId: string | null = null;
+    let bestHitPoint: Vector3 | null = null;
+    let bestT = Infinity;
+
+    const segment = collisionSegRef.current.copy(end).sub(start);
+    const segmentLengthSq = segment.lengthSq();
+    if (segmentLengthSq < 1e-7) {
+      return null;
+    }
+
+    for (const [entityId, mesh] of meshRefs.current) {
+      mesh.getWorldPosition(collisionCenterRef.current);
+      const hitRadiusValue = mesh.userData.hitRadius;
+      const hitRadius =
+        (typeof hitRadiusValue === "number" ? hitRadiusValue : 0.12) +
+        LASER_COLLISION_PAD;
+
+      const toPoint = collisionToPointRef.current
+        .copy(collisionCenterRef.current)
+        .sub(start);
+      const t = clamp(toPoint.dot(segment) / segmentLengthSq, 0, 1);
+      const closest = collisionClosestRef.current
+        .copy(start)
+        .addScaledVector(segment, t);
+      const distSq = closest.distanceToSquared(collisionCenterRef.current);
+
+      if (distSq > hitRadius * hitRadius) continue;
+      if (t >= bestT) continue;
+
+      bestT = t;
+      bestEntityId = entityId;
+      bestHitPoint = closest.clone();
+    }
+
+    if (!bestEntityId || !bestHitPoint) {
+      return null;
+    }
+
+    return {
+      entityId: bestEntityId,
+      point: bestHitPoint,
+    };
+  }, []);
 
   const handleHit = useCallback(
     (entityId: string, hitPoint?: Vector3) => {
@@ -678,9 +728,9 @@ export function EncounterSystem({
           id: createId("laser"),
           position: origin.clone(),
           direction: direction.clone().normalize(),
-          speed: 56,
+          speed: 64,
           age: 0,
-          ttl: 0.58,
+          ttl: 1.2,
           length: 1.35,
           color: "#7be7ff",
         },
@@ -690,40 +740,28 @@ export function EncounterSystem({
   );
 
   const fireWeapon = useCallback(
-    (hit: CrosshairHit | null) => {
+    (directionOverride?: Vector3) => {
       if (!enabled) return;
 
-      const direction = camera.getWorldDirection(tmpDirRef.current).normalize();
+      const direction = directionOverride
+        ? directionOverride.clone().normalize()
+        : camera.getWorldDirection(tmpDirRef.current).normalize();
       const origin = camera.position.clone().addScaledVector(direction, 0.85);
       spawnLaserShot(origin, direction);
       audioManager.playBlasterShot();
-
-      if (hit) {
-        handleHit(hit.entityId, hit.point);
-      }
     },
-    [camera, enabled, handleHit, spawnLaserShot],
-  );
-
-  const fireWeaponAtEntity = useCallback(
-    (entityId: string, point: Vector3) => {
-      fireWeapon({
-        entityId,
-        targetLabel: null,
-        point,
-      });
-    },
-    [fireWeapon],
+    [camera, enabled, spawnLaserShot],
   );
 
   const handleMobileTap = useCallback(
-    (event: ThreeEvent<MouseEvent>, entityId: string) => {
+    (event: ThreeEvent<MouseEvent>) => {
       if (!enabled || !isMobile) return;
 
       event.stopPropagation();
-      fireWeaponAtEntity(entityId, event.point.clone());
+      const direction = event.point.clone().sub(camera.position).normalize();
+      fireWeapon(direction);
     },
-    [enabled, fireWeaponAtEntity, isMobile],
+    [camera, enabled, fireWeapon, isMobile],
   );
 
   useEffect(() => {
@@ -738,8 +776,7 @@ export function EncounterSystem({
       event.stopPropagation();
       event.stopImmediatePropagation();
 
-      const hit = getCrosshairHit();
-      fireWeapon(hit);
+      fireWeapon();
     };
 
     canvas.addEventListener("click", onCanvasClickCapture, true);
@@ -749,7 +786,6 @@ export function EncounterSystem({
   }, [
     enabled,
     fireWeapon,
-    getCrosshairHit,
     gl.domElement,
     hasPlanetTarget,
     isMobile,
@@ -878,13 +914,23 @@ export function EncounterSystem({
     const nextShots: LaserShot[] = [];
     for (const shot of shotsRef.current) {
       shot.age += dt;
+      shotStartRef.current.copy(shot.position);
+      shot.position.addScaledVector(shot.direction, shot.speed * dt);
+      shotEndRef.current.copy(shot.position);
+
+      const collision = findSegmentHit(shotStartRef.current, shotEndRef.current);
+      if (collision) {
+        shotsChanged = true;
+        handleHit(collision.entityId, collision.point);
+        continue;
+      }
+
       if (shot.age > shot.ttl) {
         shotsChanged = true;
         continue;
       }
 
       nextShots.push(shot);
-      shot.position.addScaledVector(shot.direction, shot.speed * dt);
       const mesh = shotMeshRefs.current.get(shot.id);
       if (!mesh) continue;
 
@@ -937,10 +983,11 @@ export function EncounterSystem({
       {asteroids.map((asteroid) => (
         <mesh
           key={asteroid.id}
-          onClick={(event) => handleMobileTap(event, asteroid.id)}
+          onClick={handleMobileTap}
           ref={setMeshRef(asteroid.id)}
           userData={{
             entityId: asteroid.id,
+            hitRadius: asteroid.size * 1.55,
             targetLabel: asteroid.label,
           }}
         >
@@ -959,11 +1006,12 @@ export function EncounterSystem({
       {comets.map((comet) => (
         <mesh
           key={comet.id}
-          onClick={(event) => handleMobileTap(event, comet.id)}
+          onClick={handleMobileTap}
           ref={setMeshRef(comet.id)}
           scale={[0.56, 0.56, 2.1]}
           userData={{
             entityId: comet.id,
+            hitRadius: comet.size * 1.25,
             targetLabel: comet.label,
           }}
         >
@@ -980,11 +1028,12 @@ export function EncounterSystem({
       {saucers.map((saucer) => (
         <mesh
           key={saucer.id}
-          onClick={(event) => handleMobileTap(event, saucer.id)}
+          onClick={handleMobileTap}
           ref={setMeshRef(saucer.id)}
           scale={[1.8, 0.55, 1.8]}
           userData={{
             entityId: saucer.id,
+            hitRadius: saucer.size * 1.8,
             targetLabel: saucer.label,
           }}
         >

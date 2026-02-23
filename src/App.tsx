@@ -311,12 +311,6 @@ function CockpitExperience() {
         {isPointerLocked ? (
           <Crosshair targetLabel={crosshairTargetLabel ?? undefined} />
         ) : null}
-        {showFlightHints ? (
-          <FlightHintOverlay
-            lockedOn={!!activePlanetId}
-            planetLabel={lockedPlanetLabel}
-          />
-        ) : null}
       </>
     ) : null;
 
@@ -430,6 +424,12 @@ function CockpitExperience() {
               visitedCount={state.visitedPlanets.size}
             />
           ),
+          flight: showFlightHints ? (
+            <FlightHintOverlay
+              lockedOn={!!activePlanetId}
+              planetLabel={lockedPlanetLabel}
+            />
+          ) : null,
         }}
       />
       {flightOverlays}
