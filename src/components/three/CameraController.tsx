@@ -68,7 +68,7 @@ export function CameraController({
   onCrosshairPlanetChange,
   onPointerLockChange,
 }: CameraControllerProps) {
-  const { camera, gl, clock } = useThree();
+  const { camera, gl, clock, size } = useThree();
 
   const activeTweenRef = useRef<gsap.core.Tween | null>(null);
   const activeFlightRef = useRef<string | null>(null);
@@ -281,7 +281,10 @@ export function CameraController({
           y: camera.position.y,
           z: camera.position.z,
         };
-        const targetPos = { x: 0, y: 2, z: 5 };
+        // In portrait mode, pull camera back so planet fits the narrower width
+        const aspect = size.width / size.height;
+        const portraitMultiplier = aspect < 1 ? 1 / aspect : 1;
+        const targetPos = { x: 0, y: 2, z: 5 * portraitMultiplier };
 
         activeTweenRef.current = gsap.to(cameraState, {
           duration: 1.5,
@@ -339,7 +342,10 @@ export function CameraController({
 
           const dist = Math.hypot(pos.x, pos.y, pos.z);
           const safeDist = dist === 0 ? 1 : dist;
-          const closeDistance = planet.radius * 3;
+          // In portrait mode, pull camera back so planet fits the narrower width
+          const aspect = size.width / size.height;
+          const portraitMul = aspect < 1 ? 1 / aspect : 1;
+          const closeDistance = planet.radius * 3 * portraitMul;
           const scale = closeDistance / safeDist;
 
           const endPos = {
