@@ -232,6 +232,7 @@ function CockpitExperience() {
       return;
     if (activePlanetId === planetId) return;
 
+    setShowTransmission(false);
     document.exitPointerLock();
     audioManager.playClick();
     dispatch({ type: "FLY_TO_PLANET", planetId });
