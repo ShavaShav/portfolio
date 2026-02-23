@@ -1,12 +1,12 @@
 import "./Crosshair.css";
 
 type CrosshairProps = {
-  /** Planet id currently in the crosshair, if any */
-  targetPlanetLabel?: string;
+  /** Target label currently in the crosshair, if any */
+  targetLabel?: string;
 };
 
-export function Crosshair({ targetPlanetLabel }: CrosshairProps) {
-  const hasTarget = !!targetPlanetLabel;
+export function Crosshair({ targetLabel }: CrosshairProps) {
+  const hasTarget = !!targetLabel;
 
   return (
     <div
@@ -39,7 +39,7 @@ export function Crosshair({ targetPlanetLabel }: CrosshairProps) {
           </>
         )}
       </svg>
-      {hasTarget && <div className="crosshair__label">{targetPlanetLabel}</div>}
+      {hasTarget && <div className="crosshair__label">{targetLabel}</div>}
     </div>
   );
 }

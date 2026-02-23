@@ -7,7 +7,7 @@ import { OORT_CLOUD } from "../data/oortCloud";
 import type { QualityTier } from "../hooks/useDeviceCapability";
 import { AmbientParticles } from "./three/AmbientParticles";
 import { CameraController } from "./three/CameraController";
-import { CometSystem } from "./three/CometSystem";
+import { EncounterSystem } from "./three/EncounterSystem";
 import { OrbitLine } from "./three/OrbitLine";
 import { OortCloud } from "./three/OortCloud";
 import { Planet } from "./three/Planet";
@@ -20,8 +20,10 @@ type SolarSystemProps = {
   onPlanetSelect?: (planetId: string) => void;
   onDisengagePlanet?: () => void;
   onCrosshairPlanetChange?: (planetId: string | null) => void;
+  onCrosshairEncounterChange?: (targetLabel: string | null) => void;
   onPointerLockChange?: (locked: boolean) => void;
   showOrbitLines?: boolean;
+  encounterEnabled?: boolean;
   starCount?: number;
   flyToPlanetId?: string;
   isFlyingHome?: boolean;
@@ -44,8 +46,10 @@ export function SolarSystem({
   onPlanetSelect,
   onDisengagePlanet,
   onCrosshairPlanetChange,
+  onCrosshairEncounterChange,
   onPointerLockChange,
   showOrbitLines = true,
+  encounterEnabled = true,
   starCount = 5000,
   flyToPlanetId,
   isFlyingHome = false,
@@ -138,7 +142,11 @@ export function SolarSystem({
           visited={visitedPlanets?.has("open-source") ?? false}
         />
 
-        <CometSystem />
+        <EncounterSystem
+          enabled={encounterEnabled}
+          isMobile={isMobile}
+          onCrosshairTargetChange={onCrosshairEncounterChange}
+        />
         <AmbientParticles count={particleCount} />
 
         <CameraController

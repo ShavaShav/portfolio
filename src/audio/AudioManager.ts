@@ -541,6 +541,118 @@ class AudioManager {
     confirm.stop(confirmTime + 0.2);
   }
 
+  playBlasterShot(): void {
+    if (!this.enabled) return;
+
+    const ctx = this.getContext();
+    if (!this.masterGain) return;
+
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(1400, now);
+    osc.frequency.exponentialRampToValueAtTime(500, now + 0.09);
+
+    const toneGain = ctx.createGain();
+    toneGain.gain.setValueAtTime(0.11, now);
+    toneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    const toneFilter = ctx.createBiquadFilter();
+    toneFilter.type = "bandpass";
+    toneFilter.frequency.value = 1300;
+    toneFilter.Q.value = 1.2;
+
+    osc.connect(toneFilter);
+    toneFilter.connect(toneGain);
+    toneGain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.1);
+
+    const crackleBuffer = ctx.createBuffer(
+      1,
+      Math.floor(ctx.sampleRate * 0.04),
+      ctx.sampleRate,
+    );
+    const crackleData = crackleBuffer.getChannelData(0);
+    for (let i = 0; i < crackleData.length; i++) {
+      crackleData[i] = (Math.random() * 2 - 1) * (1 - i / crackleData.length);
+    }
+
+    const crackle = ctx.createBufferSource();
+    crackle.buffer = crackleBuffer;
+    const crackleFilter = ctx.createBiquadFilter();
+    crackleFilter.type = "highpass";
+    crackleFilter.frequency.value = 1800;
+    const crackleGain = ctx.createGain();
+    crackleGain.gain.value = 0.07;
+
+    crackle.connect(crackleFilter);
+    crackleFilter.connect(crackleGain);
+    crackleGain.connect(this.masterGain);
+    crackle.start(now);
+  }
+
+  playAsteroidSplit(): void {
+    if (!this.enabled) return;
+
+    const ctx = this.getContext();
+    if (!this.masterGain) return;
+
+    const now = ctx.currentTime;
+
+    [0, 0.045].forEach((offset) => {
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(220 + Math.random() * 120, now + offset);
+      osc.frequency.exponentialRampToValueAtTime(110, now + offset + 0.1);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.08, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain as GainNode);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.12);
+    });
+  }
+
+  playExplosion(): void {
+    if (!this.enabled) return;
+
+    const ctx = this.getContext();
+    if (!this.masterGain) return;
+
+    const now = ctx.currentTime;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.45);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+      const t = i / bufferSize;
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.2);
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.frequency.setValueAtTime(260, now);
+    band.frequency.exponentialRampToValueAtTime(120, now + 0.45);
+    band.Q.value = 0.8;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.22, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    src.connect(band);
+    band.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(now);
+  }
+
   playPanelOpen(): void {
     if (!this.enabled) return;
 

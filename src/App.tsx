@@ -159,6 +159,9 @@ function CockpitExperience() {
   const [crosshairPlanetId, setCrosshairPlanetId] = useState<string | null>(
     null,
   );
+  const [crosshairEncounterLabel, setCrosshairEncounterLabel] = useState<
+    string | null
+  >(null);
   const [showTransmission, setShowTransmission] = useState(false);
   const [headVisible, setHeadVisible] = useState(false);
   const headOpenedRef = useRef(false);
@@ -262,6 +265,8 @@ function CockpitExperience() {
     ? (getPlanetById(crosshairPlanetId)?.label ??
       (crosshairPlanetId === "about" ? "About Me" : crosshairPlanetId))
     : undefined;
+  const crosshairTargetLabel = crosshairEncounterLabel ?? crosshairPlanetLabel;
+  const encounterEnabled = state.view.type === "SOLAR_SYSTEM";
 
   const showFlightHints =
     !isMobile &&
@@ -286,7 +291,9 @@ function CockpitExperience() {
       }
       onPlanetSelect={handlePlanetSelect}
       onCrosshairPlanetChange={setCrosshairPlanetId}
+      onCrosshairEncounterChange={setCrosshairEncounterLabel}
       onPointerLockChange={setIsPointerLocked}
+      encounterEnabled={encounterEnabled}
       showHint={false}
       showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
       visitedPlanets={state.visitedPlanets}
@@ -302,7 +309,7 @@ function CockpitExperience() {
     !isMobile && !isEntering ? (
       <>
         {isPointerLocked ? (
-          <Crosshair targetPlanetLabel={crosshairPlanetLabel} />
+          <Crosshair targetLabel={crosshairTargetLabel} />
         ) : null}
         {showFlightHints ? (
           <FlightHintOverlay
