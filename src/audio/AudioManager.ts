@@ -376,21 +376,21 @@ class AudioManager {
     // Main warp core: rapid acceleration, then long deceleration tail.
     const core = ctx.createOscillator();
     core.type = "sawtooth";
-    core.frequency.setValueAtTime(95, now);
-    core.frequency.exponentialRampToValueAtTime(1850, now + 0.9);
-    core.frequency.exponentialRampToValueAtTime(260, now + 3.15);
+    core.frequency.setValueAtTime(58, now);
+    core.frequency.exponentialRampToValueAtTime(940, now + 0.95);
+    core.frequency.exponentialRampToValueAtTime(120, now + 3.15);
 
     const coreGain = ctx.createGain();
     coreGain.gain.setValueAtTime(0.0001, now);
-    coreGain.gain.linearRampToValueAtTime(0.26, now + 0.12);
-    coreGain.gain.setValueAtTime(0.22, now + 1.05);
+    coreGain.gain.linearRampToValueAtTime(0.3, now + 0.12);
+    coreGain.gain.setValueAtTime(0.24, now + 1.1);
     coreGain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
 
     const coreFilter = ctx.createBiquadFilter();
     coreFilter.type = "lowpass";
-    coreFilter.frequency.setValueAtTime(820, now);
-    coreFilter.frequency.exponentialRampToValueAtTime(5200, now + 0.95);
-    coreFilter.frequency.exponentialRampToValueAtTime(880, now + 3.2);
+    coreFilter.frequency.setValueAtTime(360, now);
+    coreFilter.frequency.exponentialRampToValueAtTime(1700, now + 1.0);
+    coreFilter.frequency.exponentialRampToValueAtTime(280, now + 3.2);
     coreFilter.Q.value = 0.55;
 
     core.connect(coreFilter);
@@ -402,22 +402,22 @@ class AudioManager {
     // Harmonic body that thickens the warp tone.
     const harmonic = ctx.createOscillator();
     harmonic.type = "triangle";
-    harmonic.frequency.setValueAtTime(160, now);
-    harmonic.frequency.exponentialRampToValueAtTime(980, now + 0.78);
-    harmonic.frequency.exponentialRampToValueAtTime(170, now + 3.05);
+    harmonic.frequency.setValueAtTime(90, now);
+    harmonic.frequency.exponentialRampToValueAtTime(440, now + 0.85);
+    harmonic.frequency.exponentialRampToValueAtTime(80, now + 3.05);
 
     const harmonicGain = ctx.createGain();
     harmonicGain.gain.setValueAtTime(0.0001, now);
-    harmonicGain.gain.linearRampToValueAtTime(0.15, now + 0.1);
-    harmonicGain.gain.setValueAtTime(0.11, now + 0.95);
+    harmonicGain.gain.linearRampToValueAtTime(0.18, now + 0.1);
+    harmonicGain.gain.setValueAtTime(0.13, now + 0.95);
     harmonicGain.gain.exponentialRampToValueAtTime(0.001, now + 3.1);
 
     const harmonicFilter = ctx.createBiquadFilter();
     harmonicFilter.type = "bandpass";
-    harmonicFilter.frequency.setValueAtTime(420, now);
-    harmonicFilter.frequency.exponentialRampToValueAtTime(2300, now + 0.85);
-    harmonicFilter.frequency.exponentialRampToValueAtTime(420, now + 3.1);
-    harmonicFilter.Q.value = 0.72;
+    harmonicFilter.frequency.setValueAtTime(220, now);
+    harmonicFilter.frequency.exponentialRampToValueAtTime(860, now + 0.9);
+    harmonicFilter.frequency.exponentialRampToValueAtTime(180, now + 3.1);
+    harmonicFilter.Q.value = 0.8;
 
     harmonic.connect(harmonicFilter);
     harmonicFilter.connect(harmonicGain);
@@ -441,15 +441,15 @@ class AudioManager {
 
     const noiseFilter = ctx.createBiquadFilter();
     noiseFilter.type = "bandpass";
-    noiseFilter.frequency.setValueAtTime(180, now);
-    noiseFilter.frequency.exponentialRampToValueAtTime(3000, now + 0.95);
-    noiseFilter.frequency.exponentialRampToValueAtTime(360, now + 3.35);
+    noiseFilter.frequency.setValueAtTime(95, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(980, now + 1.0);
+    noiseFilter.frequency.exponentialRampToValueAtTime(140, now + 3.35);
     noiseFilter.Q.value = 0.75;
 
     const noiseGain = ctx.createGain();
     noiseGain.gain.setValueAtTime(0.0001, now);
-    noiseGain.gain.linearRampToValueAtTime(0.32, now + 0.08);
-    noiseGain.gain.setValueAtTime(0.24, now + 1.05);
+    noiseGain.gain.linearRampToValueAtTime(0.37, now + 0.08);
+    noiseGain.gain.setValueAtTime(0.26, now + 1.1);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 3.4);
 
     noiseSource.connect(noiseFilter);
@@ -457,15 +457,33 @@ class AudioManager {
     noiseGain.connect(this.masterGain);
     noiseSource.start(now);
 
+    // Low-end warp rumble to keep the launch feeling heavy.
+    const sub = ctx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(34, now);
+    sub.frequency.exponentialRampToValueAtTime(66, now + 1.1);
+    sub.frequency.exponentialRampToValueAtTime(38, now + 3.2);
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.linearRampToValueAtTime(0.2, now + 0.16);
+    subGain.gain.setValueAtTime(0.17, now + 1.1);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 3.3);
+
+    sub.connect(subGain);
+    subGain.connect(this.masterGain);
+    sub.start(now);
+    sub.stop(now + 3.3);
+
     // Deceleration whistle as we settle into local space.
     const decel = ctx.createOscillator();
     decel.type = "sine";
-    decel.frequency.setValueAtTime(760, now + 1.45);
-    decel.frequency.exponentialRampToValueAtTime(145, now + 3.35);
+    decel.frequency.setValueAtTime(280, now + 1.5);
+    decel.frequency.exponentialRampToValueAtTime(72, now + 3.35);
 
     const decelGain = ctx.createGain();
     decelGain.gain.setValueAtTime(0.0001, now + 1.45);
-    decelGain.gain.linearRampToValueAtTime(0.09, now + 1.55);
+    decelGain.gain.linearRampToValueAtTime(0.06, now + 1.58);
     decelGain.gain.exponentialRampToValueAtTime(0.001, now + 3.4);
 
     decel.connect(decelGain);
