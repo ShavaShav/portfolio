@@ -34,6 +34,7 @@ type SolarSystemProps = {
   reducedQuality?: boolean;
   particleCount?: number;
   visitedPlanets?: Set<string>;
+  isMobile?: boolean;
 };
 
 export function SolarSystem({
@@ -56,6 +57,7 @@ export function SolarSystem({
   reducedQuality = false,
   particleCount = 200,
   visitedPlanets,
+  isMobile = false,
 }: SolarSystemProps) {
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
@@ -98,7 +100,7 @@ export function SolarSystem({
           speed={0.45}
         />
 
-        <Sun onSelect={() => handlePlanetSelect("about")} />
+        <Sun isMobile={isMobile} onSelect={() => handlePlanetSelect("about")} />
 
         {showOrbitLines
           ? PLANETS.map((planet) => (
@@ -115,6 +117,7 @@ export function SolarSystem({
 
         {PLANETS.map((planet) => (
           <Planet
+            isMobile={isMobile}
             key={planet.id}
             onSelect={handlePlanetSelect}
             planet={planet}
@@ -123,6 +126,7 @@ export function SolarSystem({
         ))}
 
         <OortCloud
+          isMobile={isMobile}
           onSelect={handlePlanetSelect}
           visited={visitedPlanets?.has("open-source") ?? false}
         />

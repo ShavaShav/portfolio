@@ -10,9 +10,10 @@ type PlanetProps = {
   planet: PlanetConfig;
   onSelect: (planetId: string) => void;
   visited?: boolean;
+  isMobile?: boolean;
 };
 
-export function Planet({ planet, onSelect, visited = false }: PlanetProps) {
+export function Planet({ planet, onSelect, visited = false, isMobile = false }: PlanetProps) {
   const groupRef = useRef<Group>(null);
   const meshRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -68,6 +69,20 @@ export function Planet({ planet, onSelect, visited = false }: PlanetProps) {
           roughness={0.65}
         />
       </mesh>
+
+      {/* Larger invisible touch target for mobile */}
+      {isMobile ? (
+        <mesh
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect(planet.id);
+          }}
+          visible={false}
+        >
+          <sphereGeometry args={[planet.radius * 2.5, 16, 16]} />
+          <meshBasicMaterial />
+        </mesh>
+      ) : null}
 
       {planet.hasRings ? (
         <Ring

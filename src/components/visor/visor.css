@@ -87,6 +87,24 @@
   transition: background 0.15s ease;
 }
 
+.visor-hud__tap-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(220, 255, 235, 0.5);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  animation: visor-hint-fade 4s ease-in-out infinite;
+}
+
+@keyframes visor-hint-fade {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
 .visor-hud__btn.is-active,
 .visor-hud__btn:active {
   background: rgba(0, 255, 136, 0.22);

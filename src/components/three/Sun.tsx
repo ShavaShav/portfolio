@@ -7,9 +7,10 @@ import { sunFragmentShader, sunVertexShader } from "../../shaders/sun";
 
 type SunProps = {
   onSelect?: () => void;
+  isMobile?: boolean;
 };
 
-export function Sun({ onSelect }: SunProps) {
+export function Sun({ onSelect, isMobile = false }: SunProps) {
   const coreRef = useRef<Mesh>(null);
   const glowRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -71,6 +72,20 @@ export function Sun({ onSelect }: SunProps) {
       >
         <sphereGeometry args={[1.5, 64, 64]} />
       </mesh>
+
+      {/* Larger invisible touch target for mobile */}
+      {isMobile ? (
+        <mesh
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect?.();
+          }}
+          visible={false}
+        >
+          <sphereGeometry args={[3.5, 16, 16]} />
+          <meshBasicMaterial />
+        </mesh>
+      ) : null}
 
       {/* Corona glow layer */}
       <mesh ref={glowRef}>

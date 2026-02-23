@@ -8,6 +8,7 @@ import { OORT_CLOUD } from "../../data/oortCloud";
 type OortCloudProps = {
   onSelect: (planetId: string) => void;
   visited?: boolean;
+  isMobile?: boolean;
 };
 
 type AsteroidInstance = {
@@ -21,7 +22,7 @@ type AsteroidInstance = {
   isHub: boolean;
 };
 
-export function OortCloud({ onSelect, visited = false }: OortCloudProps) {
+export function OortCloud({ onSelect, visited = false, isMobile = false }: OortCloudProps) {
   const meshRefs = useRef<Map<string, Mesh>>(new Map());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -130,6 +131,19 @@ export function OortCloud({ onSelect, visited = false }: OortCloudProps) {
               flatShading
             />
           </mesh>
+          {/* Larger invisible touch target for mobile */}
+          {isMobile ? (
+            <mesh
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect("open-source");
+              }}
+              visible={false}
+            >
+              <sphereGeometry args={[asteroid.size * 2.5, 8, 8]} />
+              <meshBasicMaterial />
+            </mesh>
+          ) : null}
           {hoveredId === asteroid.id ? (
             <Html
               center

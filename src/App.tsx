@@ -243,7 +243,7 @@ function CockpitExperience() {
     if (activePlanetId === planetId) return;
 
     setShowTransmission(false);
-    document.exitPointerLock();
+    if (!isMobile) document.exitPointerLock();
     audioManager.playClick();
     dispatch({ type: "FLY_TO_PLANET", planetId });
   };
@@ -293,6 +293,7 @@ function CockpitExperience() {
       starCount={isLowQuality ? 500 : isMobile ? 1500 : 5000}
       reducedQuality={isLowQuality}
       particleCount={isLowQuality ? 0 : isMobile ? 50 : 200}
+      isMobile={isMobile}
     />
   );
 

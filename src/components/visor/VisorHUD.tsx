@@ -57,7 +57,10 @@ export function VisorHUD({
         <AudioToggle enabled={audioEnabled} onToggle={onToggleAudio} />
       </header>
 
-      <div className="visor-hud__canvas">{canvas}</div>
+      <div className="visor-hud__canvas">
+        {canvas}
+        <div className="visor-hud__tap-hint">Tap a planet to explore</div>
+      </div>
 
       <footer className="visor-hud__bottom">
         <span className="visor-hud__telemetry">ORBIT STABLE</span>
