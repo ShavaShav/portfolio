@@ -1,16 +1,30 @@
 .talking-head {
   display: flex;
   flex-direction: column;
+  filter: sepia(0.3) hue-rotate(120deg) saturate(1.5) brightness(0.9);
+}
+
+.talking-head__body {
+  position: relative;
+  transform-origin: center center;
+  transition: transform 0.32s ease;
+}
+
+.talking-head__body--mirrored {
+  transform: scaleX(-1);
 }
 
 .talking-head__wrapper {
   position: relative;
   width: 78px;
   height: 100px;
+  --th-scale: 0.94;
+  --th-shift-x: 0px;
+  --th-shift-y: 0px;
+  transform: translate3d(var(--th-shift-x), var(--th-shift-y), 0)
+    scale(var(--th-scale));
   transform-style: preserve-3d;
-  transition: transform 0.4s ease;
-  transform: scale(0.94);
-  filter: sepia(0.3) hue-rotate(120deg) saturate(1.5) brightness(0.9);
+  transition: transform 0.35s ease;
   cursor: pointer;
   opacity: 0;
   animation: talking-head-fade-in 0.6s ease 0.3s forwards;
@@ -23,15 +37,7 @@
 }
 
 .talking-head__wrapper:hover {
-  transform: scale(1);
-}
-
-.talking-head--flipped {
-  transform: scaleX(-1) scale(0.94);
-}
-
-.talking-head--flipped:hover {
-  transform: scaleX(-1) scale(1);
+  --th-scale: 1;
 }
 
 /* Desktop: extends from the panel edge with no gap */
@@ -110,17 +116,23 @@
 }
 
 .talking-head__wrapper--collapsed {
-  width: 20px;
-  height: 74px;
-  padding: 0;
-  border-radius: 6px;
   cursor: default;
-  filter: none;
-  background: rgba(8, 14, 20, 0.95);
+  background: rgba(8, 14, 20, 0.96);
+  box-shadow: inset 0 0 8px rgba(0, 255, 136, 0.08);
 }
 
 .talking-head__wrapper--collapsed:hover {
-  transform: scale(1);
+  --th-scale: 0.94;
+}
+
+.talking-head__wrapper--right.talking-head__wrapper--collapsed {
+  --th-shift-x: -68px;
+  z-index: 0;
+}
+
+.talking-head__wrapper--left.talking-head__wrapper--collapsed {
+  --th-shift-x: 68px;
+  z-index: 0;
 }
 
 .talking-head__wrapper--collapsed::after {
@@ -193,6 +205,7 @@
   place-content: center;
   padding: 0;
   line-height: 1;
+  outline: none;
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -207,6 +220,11 @@
   color: #ceffe5;
 }
 
+.talking-head__toggle:focus-visible {
+  border-color: rgba(0, 255, 136, 0.65);
+  box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.45);
+}
+
 .talking-head__wrapper--right .talking-head__toggle {
   right: auto;
   left: 2px;
@@ -217,10 +235,24 @@
 }
 
 .talking-head__wrapper--collapsed .talking-head__toggle {
-  position: static;
-  width: 100%;
+  top: 0;
+  bottom: 0;
+  width: 16px;
   height: 100%;
   border: none;
   border-radius: 0;
-  background: rgba(0, 255, 136, 0.06);
+  background: rgba(0, 255, 136, 0.1);
+  color: rgba(206, 255, 229, 0.85);
+  font-size: 12px;
+  opacity: 1;
+}
+
+.talking-head__wrapper--right.talking-head__wrapper--collapsed
+  .talking-head__toggle {
+  left: 0;
+}
+
+.talking-head__wrapper--left.talking-head__wrapper--collapsed
+  .talking-head__toggle {
+  right: 0;
 }

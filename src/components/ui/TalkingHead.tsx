@@ -115,7 +115,6 @@ export function TalkingHead({
     "talking-head__wrapper",
     posClass,
     collapsed ? "talking-head__wrapper--collapsed" : "",
-    !collapsed && (isTalking || isFlipped) ? "talking-head--flipped" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -124,6 +123,13 @@ export function TalkingHead({
     "talking-head",
     isTalking ? "talking-head--talking" : "talking-head--chilling",
   ].join(" ");
+
+  const headBodyClasses = [
+    "talking-head__body",
+    !collapsed && (isTalking || isFlipped) ? "talking-head__body--mirrored" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
@@ -144,25 +150,27 @@ export function TalkingHead({
           }}
           type="button"
         >
-          {collapsed ? (resolvedDock === "left" ? ">" : "<") : "x"}
+          {collapsed ? "+" : "-"}
         </button>
       ) : null}
       {!collapsed ? (
         <>
-          <div
-            className={headClasses}
-            onAnimationIteration={handleAnimationIteration}
-            style={
-              {
-                "--random-translate": `${randomTranslate}px`,
-                "--random-rotate": `${randomRotate}deg`,
-              } as CSSProperties
-            }
-          >
-            <img src="/zachhead_100px_top.png" alt="" />
-            <img src="/zachhead_100px_bottom.png" alt="" />
+          <div className={headBodyClasses}>
+            <div
+              className={headClasses}
+              onAnimationIteration={handleAnimationIteration}
+              style={
+                {
+                  "--random-translate": `${randomTranslate}px`,
+                  "--random-rotate": `${randomRotate}deg`,
+                } as CSSProperties
+              }
+            >
+              <img src="/zachhead_100px_top.png" alt="" />
+              <img src="/zachhead_100px_bottom.png" alt="" />
+            </div>
+            <div className="talking-head__holo-overlay" />
           </div>
-          <div className="talking-head__holo-overlay" />
         </>
       ) : null}
     </div>
