@@ -10,13 +10,13 @@ export const TERMINAL_INTRO_LINES = [
   "> Connection established.",
   "> Welcome to zachshaver.com",
   ">",
-  "> Type 'help' for commands, or 'launch' to begin.",
+  "> Type 'help' for commands, 'launch' to begin, or 'launch -f' to skip.",
 ];
 
 export const TERMINAL_COMMANDS: TerminalCommandDefinition[] = [
   { command: "help", description: "List available commands" },
   { command: "sound", description: "Toggle audio, or set on/off" },
-  { command: "launch", description: "Begin the flight sequence" },
+  { command: "launch", description: "Begin sequence (use -f to skip)" },
   { command: "about", description: "Quick bio" },
   { command: "whoami", description: "Identity check" },
   { command: "ls", description: "List destinations" },

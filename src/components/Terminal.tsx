@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { audioManager } from "../audio/AudioManager";
 import { getDeviceCapability } from "../hooks/useDeviceCapability";
 import {
@@ -44,13 +44,14 @@ export function Terminal({
 }: TerminalProps) {
   const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
   const [inputValue, setInputValue] = useState("");
-  const [isBooting, setIsBooting] = useState(true);
   const [isLaunching, setIsLaunching] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
   const timeoutIdsRef = useRef<number[]>([]);
+  const typingGenerationRef = useRef(0);
+  const introCancelledRef = useRef(false);
 
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
@@ -65,6 +66,7 @@ export function Terminal({
 
   const typeLine = useCallback((text: string, tone?: OutputLine["tone"]) => {
     return new Promise<void>((resolve) => {
+      const generation = typingGenerationRef.current;
       const lineId = createLineId();
       setOutputLines((previous) => [
         ...previous,
@@ -79,6 +81,11 @@ export function Terminal({
       let index = 0;
 
       const tick = () => {
+        if (generation !== typingGenerationRef.current) {
+          resolve();
+          return;
+        }
+
         index += 1;
         setOutputLines((previous) =>
           previous.map((line) =>
@@ -100,21 +107,38 @@ export function Terminal({
     });
   }, []);
 
-  const runLaunchSequence = useCallback(async () => {
-    if (isLaunching) {
-      return;
-    }
+  const runLaunchSequence = useCallback(
+    async (options?: { force?: boolean }) => {
+      if (isLaunching) {
+        return;
+      }
 
-    setIsLaunching(true);
-    audioManager.playLaunch();
+      const force = options?.force ?? false;
+      setIsLaunching(true);
+      introCancelledRef.current = true;
+      typingGenerationRef.current += 1;
 
-    for (const line of TERMINAL_LAUNCH_LINES) {
-      await typeLine(line);
-    }
+      if (force) {
+        audioManager.playTransition();
+        appendLine("> Launch override accepted. Skipping sequence.");
+        setIsTransitioning(true);
+        window.setTimeout(onLaunch, 160);
+        return;
+      }
 
-    setIsTransitioning(true);
-    window.setTimeout(onLaunch, 600);
-  }, [isLaunching, onLaunch, typeLine]);
+      for (const line of TERMINAL_LAUNCH_LINES) {
+        if (line.includes("3... 2... 1...")) {
+          audioManager.playLaunchCountdown();
+        }
+        await typeLine(line);
+      }
+
+      audioManager.playLaunchIgnition();
+      setIsTransitioning(true);
+      window.setTimeout(onLaunch, 600);
+    },
+    [appendLine, isLaunching, onLaunch, typeLine],
+  );
 
   const executeCommand = useCallback(
     async (rawCommand: string) => {
@@ -167,7 +191,19 @@ export function Terminal({
       }
 
       if (command === "launch") {
-        await runLaunchSequence();
+        const launchArgs = args.slice(1).map((arg) => arg.toLowerCase());
+        const hasForceFlag =
+          launchArgs.includes("-f") || launchArgs.includes("--force");
+        const hasInvalidFlag = launchArgs.some(
+          (arg) => arg !== "-f" && arg !== "--force",
+        );
+
+        if (hasInvalidFlag) {
+          appendLine("> Usage: launch [-f|--force]", "amber");
+          return;
+        }
+
+        await runLaunchSequence({ force: hasForceFlag });
         return;
       }
 
@@ -206,18 +242,15 @@ export function Terminal({
 
   useEffect(() => {
     let cancelled = false;
+    introCancelledRef.current = false;
 
     const boot = async () => {
       for (const line of TERMINAL_INTRO_LINES) {
-        if (cancelled) {
+        if (cancelled || introCancelledRef.current) {
           return;
         }
 
         await typeLine(line);
-      }
-
-      if (!cancelled) {
-        setIsBooting(false);
       }
     };
 
@@ -225,6 +258,7 @@ export function Terminal({
 
     return () => {
       cancelled = true;
+      introCancelledRef.current = true;
       for (const tid of timeoutIdsRef.current) {
         window.clearTimeout(tid);
       }
@@ -246,7 +280,7 @@ export function Terminal({
 
       event.preventDefault();
 
-      if (isBooting || isLaunching) {
+      if (isLaunching) {
         return;
       }
 
@@ -259,7 +293,7 @@ export function Terminal({
 
       void executeCommand(nextCommand);
     },
-    [executeCommand, inputValue, isBooting, isLaunching],
+    [executeCommand, inputValue, isLaunching],
   );
 
   return (
@@ -297,7 +331,7 @@ export function Terminal({
       />
 
       {/* Mobile launch button */}
-      {getDeviceCapability().isMobile && !isBooting && !isLaunching ? (
+      {getDeviceCapability().isMobile && !isLaunching ? (
         <button
           className="terminal-screen__launch-btn"
           onClick={() => void runLaunchSequence()}

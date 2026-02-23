@@ -301,7 +301,42 @@ class AudioManager {
     source.start();
   }
 
-  playLaunch(): void {
+  playLaunchCountdown(): void {
+    if (!this.enabled) return;
+
+    const ctx = this.getContext();
+    if (!this.masterGain) return;
+
+    const now = ctx.currentTime;
+    const beepOffsets = [0, 0.42, 0.84];
+    const beepFrequencies = [520, 620, 760];
+
+    beepOffsets.forEach((offset, index) => {
+      const t = now + offset;
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(beepFrequencies[index], t);
+      osc.frequency.exponentialRampToValueAtTime(beepFrequencies[index] * 0.92, t + 0.16);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1300;
+      filter.Q.value = 1.1;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.13, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain as GainNode);
+      osc.start(t);
+      osc.stop(t + 0.16);
+    });
+  }
+
+  playLaunchIgnition(): void {
     if (!this.enabled) return;
 
     const ctx = this.getContext();
@@ -309,29 +344,38 @@ class AudioManager {
 
     const now = ctx.currentTime;
 
-    const osc = ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(1200, now + 1.8);
+    const core = ctx.createOscillator();
+    core.type = "sawtooth";
+    core.frequency.setValueAtTime(95, now);
+    core.frequency.exponentialRampToValueAtTime(620, now + 0.42);
+    core.frequency.exponentialRampToValueAtTime(280, now + 1.05);
 
-    const oscGain = ctx.createGain();
-    oscGain.gain.setValueAtTime(0.2, now);
-    oscGain.gain.setValueAtTime(0.2, now + 1.4);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+    const coreGain = ctx.createGain();
+    coreGain.gain.setValueAtTime(0.0001, now);
+    coreGain.gain.linearRampToValueAtTime(0.2, now + 0.08);
+    coreGain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
 
-    osc.connect(oscGain);
-    oscGain.connect(this.masterGain);
-    osc.start(now);
-    osc.stop(now + 2.0);
+    const coreFilter = ctx.createBiquadFilter();
+    coreFilter.type = "lowpass";
+    coreFilter.frequency.setValueAtTime(700, now);
+    coreFilter.frequency.exponentialRampToValueAtTime(2600, now + 0.55);
+    coreFilter.frequency.exponentialRampToValueAtTime(900, now + 1.1);
+
+    core.connect(coreFilter);
+    coreFilter.connect(coreGain);
+    coreGain.connect(this.masterGain);
+    core.start(now);
+    core.stop(now + 1.1);
 
     const noiseBuffer = ctx.createBuffer(
       1,
-      ctx.sampleRate * 0.8,
+      Math.floor(ctx.sampleRate * 1.2),
       ctx.sampleRate,
     );
     const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < noiseData.length; i++) {
-      noiseData[i] = Math.random() * 2 - 1;
+      const t = i / noiseData.length;
+      noiseData[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 0.72);
     }
 
     const noiseSource = ctx.createBufferSource();
@@ -339,18 +383,46 @@ class AudioManager {
 
     const noiseFilter = ctx.createBiquadFilter();
     noiseFilter.type = "bandpass";
-    noiseFilter.frequency.setValueAtTime(400, now);
-    noiseFilter.frequency.exponentialRampToValueAtTime(2000, now + 0.8);
-    noiseFilter.Q.value = 0.5;
+    noiseFilter.frequency.setValueAtTime(260, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(1800, now + 0.42);
+    noiseFilter.frequency.exponentialRampToValueAtTime(520, now + 1.2);
+    noiseFilter.Q.value = 0.8;
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.3, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.linearRampToValueAtTime(0.26, now + 0.06);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseGain.connect(this.masterGain);
     noiseSource.start(now);
+
+    const sub = ctx.createOscillator();
+    sub.type = "sine";
+    sub.frequency.setValueAtTime(42, now);
+    sub.frequency.exponentialRampToValueAtTime(74, now + 0.6);
+
+    const subGain = ctx.createGain();
+    subGain.gain.setValueAtTime(0.0001, now);
+    subGain.gain.linearRampToValueAtTime(0.11, now + 0.1);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+
+    sub.connect(subGain);
+    subGain.connect(this.masterGain);
+    sub.start(now);
+    sub.stop(now + 1.0);
+  }
+
+  playLaunch(): void {
+    if (!this.enabled) return;
+
+    const ctx = this.getContext();
+    this.playLaunchCountdown();
+    window.setTimeout(() => {
+      if (!this.enabled || !this.context || this.context !== ctx) return;
+      this.playLaunchIgnition();
+    }, 1150);
   }
 
   playThrust(): void {
