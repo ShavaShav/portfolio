@@ -48,7 +48,7 @@ export function StatusBar({
   const signalZ = Math.sin(timestamp / 1650) * 16;
 
   return (
-    <CockpitScreen title="STATUS" powered>
+    <CockpitScreen powered>
       <div className="status-bar">
         <p>{getStatusLabel(view)}</p>
         <p>

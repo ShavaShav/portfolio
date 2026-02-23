@@ -32,8 +32,6 @@ export function CompanionScreen({
   const isActive = mode === "active" || mode === "copilot";
   const powered = isActive;
 
-  const headerTitle = mode === "copilot" ? "COPILOT MODE" : "COMPANION COMMS";
-
   // Auto-greeting when arriving at a planet
   useEffect(() => {
     const wasInactive = prevModeRef.current === "standby";
@@ -109,7 +107,7 @@ export function CompanionScreen({
     mode === "copilot" ? "Ask about this mission..." : "Ask me anything...";
 
   return (
-    <CockpitScreen powered={powered} title={headerTitle}>
+    <CockpitScreen powered={powered}>
       <div className={`companion-screen ${isActive ? "is-active" : ""}`}>
         {!isActive ? (
           <div className="companion-screen__standby">

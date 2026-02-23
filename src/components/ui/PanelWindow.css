@@ -20,6 +20,21 @@
   height: 100%;
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.panel-window__led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.7);
+  flex-shrink: 0;
+}
+
+.panel-window__led.is-standby {
+  opacity: 0.35;
+  box-shadow: none;
 }
 
 .panel-window__title {

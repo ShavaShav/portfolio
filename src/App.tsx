@@ -347,6 +347,13 @@ function CockpitExperience() {
         audioEnabled={state.audioEnabled}
         canvas={canvas}
         onToggleAudio={toggleAudio}
+        panelTitles={{
+          data: dataScreen.title,
+          companion: companionMode === "copilot" ? "COPILOT MODE" : "COMPANION COMMS",
+        }}
+        panelPowered={{
+          companion: companionMode !== "standby",
+        }}
         screens={{
           nav: (
             <NavScreen
@@ -374,7 +381,6 @@ function CockpitExperience() {
                     ? () => dispatch({ type: "FLY_HOME" })
                     : undefined
               }
-              title={dataScreen.title}
             >
               {dataScreen.content}
             </DataScreen>

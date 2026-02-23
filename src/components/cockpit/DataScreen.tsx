@@ -2,7 +2,6 @@
 import { CockpitScreen } from "./CockpitScreen";
 
 type DataScreenProps = {
-  title: string;
   contentKey: string;
   children: ReactNode;
   powered?: boolean;
@@ -10,7 +9,6 @@ type DataScreenProps = {
 };
 
 export function DataScreen({
-  title,
   contentKey,
   children,
   powered = true,
@@ -40,7 +38,7 @@ export function DataScreen({
   }, [onBack]);
 
   return (
-    <CockpitScreen className="data-screen" powered={powered} title={title}>
+    <CockpitScreen className="data-screen" powered={powered}>
       {onBack ? (
         <button className="data-screen__back" onClick={onBack} type="button">
           {"<- Back To System"}

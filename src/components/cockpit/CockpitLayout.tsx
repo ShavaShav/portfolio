@@ -13,11 +13,13 @@ type CockpitLayoutProps = {
     companion: ReactNode;
     status: ReactNode;
   };
+  panelTitles?: Partial<Record<PanelId, string>>;
+  panelPowered?: Partial<Record<PanelId, boolean>>;
   audioEnabled: boolean;
   onToggleAudio: () => void;
 };
 
-const PANEL_TITLES: Record<PanelId, string> = {
+const DEFAULT_PANEL_TITLES: Record<PanelId, string> = {
   nav: "NAV SYSTEM",
   data: "DATA",
   companion: "COMPANION COMMS",
@@ -27,6 +29,8 @@ const PANEL_TITLES: Record<PanelId, string> = {
 export function CockpitLayout({
   canvas,
   screens,
+  panelTitles,
+  panelPowered,
   audioEnabled,
   onToggleAudio,
 }: CockpitLayoutProps) {
@@ -41,7 +45,8 @@ export function CockpitLayout({
 
   const renderPanel = (panelId: PanelId, content: ReactNode) => (
     <PanelWindow
-      title={PANEL_TITLES[panelId]}
+      title={panelTitles?.[panelId] ?? DEFAULT_PANEL_TITLES[panelId]}
+      powered={panelPowered?.[panelId] ?? true}
       x={layouts[panelId].x}
       y={layouts[panelId].y}
       width={layouts[panelId].width}

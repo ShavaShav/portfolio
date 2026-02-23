@@ -1,8 +1,6 @@
 ﻿.planet-detail {
   display: grid;
   gap: 16px;
-  max-height: 58vh;
-  overflow-y: auto;
   padding-right: 8px;
   color: #d6ffe8;
   font-family: var(--font-mono);

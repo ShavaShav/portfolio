@@ -21,7 +21,7 @@ export function NavScreen({
   visitedPlanets,
 }: NavScreenProps) {
   return (
-    <CockpitScreen title="NAV SYSTEM" powered>
+    <CockpitScreen powered>
       <MiniSystemMap
         activePlanetId={activePlanetId}
         onSelectPlanet={onSelectPlanet}

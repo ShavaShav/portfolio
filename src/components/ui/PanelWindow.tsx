@@ -12,6 +12,7 @@ type PanelWindowProps = {
   minWidth?: number;
   minHeight?: number;
   isMinimized: boolean;
+  powered?: boolean;
   onMinimize: () => void;
   onDragStop: (x: number, y: number) => void;
   onResizeStop: (width: number, height: number, x: number, y: number) => void;
@@ -27,6 +28,7 @@ export function PanelWindow({
   minWidth = 200,
   minHeight = 120,
   isMinimized,
+  powered = true,
   onMinimize,
   onDragStop,
   onResizeStop,
@@ -68,6 +70,7 @@ export function PanelWindow({
     >
       <div className="panel-window__chrome">
         <div className="panel-window__drag-handle">
+          <span className={`panel-window__led ${powered ? "" : "is-standby"}`} />
           <span className="panel-window__title">{title}</span>
         </div>
         <button

@@ -3,8 +3,6 @@
   gap: 14px;
   color: #d8ffe9;
   font-family: var(--font-mono);
-  max-height: 58vh;
-  overflow-y: auto;
   padding-right: 6px;
 }
 
