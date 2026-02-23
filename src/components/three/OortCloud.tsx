@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import type { Group, InstancedMesh } from "three";
-import { Color, DoubleSide, Object3D, Vector3 } from "three";
+import { Color, Object3D, Vector3 } from "three";
 import { OORT_CLOUD } from "../../data/oortCloud";
 
 type OortCloudProps = {
@@ -168,19 +168,6 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
           vertexColors
         />
       </instancedMesh>
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry
-          args={[OORT_CLOUD.innerRadius, OORT_CLOUD.outerRadius, 128]}
-        />
-        <meshBasicMaterial
-          color={OORT_CLOUD.color}
-          depthWrite={false}
-          opacity={0.045}
-          side={DoubleSide}
-          transparent
-        />
-      </mesh>
     </group>
   );
 }
