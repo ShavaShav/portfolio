@@ -20,6 +20,18 @@ class AudioManager {
   private thrustOsc: OscillatorNode | null = null;
   private thrustGain: GainNode | null = null;
 
+  private createSoftClipCurve(amount: number, samples = 2048): Float32Array {
+    const curve = new Float32Array(
+      new ArrayBuffer(samples * Float32Array.BYTES_PER_ELEMENT),
+    );
+    const k = Math.max(1, amount);
+    for (let i = 0; i < samples; i++) {
+      const x = (i * 2) / (samples - 1) - 1;
+      curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+    }
+    return curve;
+  }
+
   private getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
@@ -345,7 +357,10 @@ class AudioManager {
       const osc = ctx.createOscillator();
       osc.type = "triangle";
       osc.frequency.setValueAtTime(beepFrequencies[index], t);
-      osc.frequency.exponentialRampToValueAtTime(beepFrequencies[index] * 0.92, t + 0.16);
+      osc.frequency.exponentialRampToValueAtTime(
+        beepFrequencies[index] * 0.92,
+        t + 0.16,
+      );
 
       const filter = ctx.createBiquadFilter();
       filter.type = "bandpass";
@@ -372,56 +387,85 @@ class AudioManager {
     if (!this.masterGain) return;
 
     const now = ctx.currentTime;
+    const warpBus = ctx.createGain();
+    warpBus.gain.value = 1;
+
+    const saturator = ctx.createWaveShaper();
+    saturator.curve = this.createSoftClipCurve(
+      18,
+    ) as unknown as Float32Array<ArrayBuffer>;
+    saturator.oversample = "4x";
+
+    const lowShelf = ctx.createBiquadFilter();
+    lowShelf.type = "lowshelf";
+    lowShelf.frequency.value = 110;
+    lowShelf.gain.value = 5.5;
+
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -28;
+    compressor.knee.value = 18;
+    compressor.ratio.value = 3.8;
+    compressor.attack.value = 0.008;
+    compressor.release.value = 0.24;
+
+    const warpOut = ctx.createGain();
+    warpOut.gain.value = 0.86;
+
+    warpBus.connect(saturator);
+    saturator.connect(lowShelf);
+    lowShelf.connect(compressor);
+    compressor.connect(warpOut);
+    warpOut.connect(this.masterGain);
 
     // Main warp core: rapid acceleration, then long deceleration tail.
     const core = ctx.createOscillator();
     core.type = "sawtooth";
-    core.frequency.setValueAtTime(42, now);
-    core.frequency.exponentialRampToValueAtTime(640, now + 0.95);
-    core.frequency.exponentialRampToValueAtTime(88, now + 3.15);
+    core.frequency.setValueAtTime(34, now);
+    core.frequency.exponentialRampToValueAtTime(460, now + 0.95);
+    core.frequency.exponentialRampToValueAtTime(70, now + 3.15);
 
     const coreGain = ctx.createGain();
     coreGain.gain.setValueAtTime(0.0001, now);
-    coreGain.gain.linearRampToValueAtTime(0.34, now + 0.12);
-    coreGain.gain.setValueAtTime(0.27, now + 1.1);
+    coreGain.gain.linearRampToValueAtTime(0.42, now + 0.12);
+    coreGain.gain.setValueAtTime(0.32, now + 1.1);
     coreGain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
 
     const coreFilter = ctx.createBiquadFilter();
     coreFilter.type = "lowpass";
-    coreFilter.frequency.setValueAtTime(220, now);
-    coreFilter.frequency.exponentialRampToValueAtTime(980, now + 1.0);
-    coreFilter.frequency.exponentialRampToValueAtTime(170, now + 3.2);
+    coreFilter.frequency.setValueAtTime(180, now);
+    coreFilter.frequency.exponentialRampToValueAtTime(760, now + 1.0);
+    coreFilter.frequency.exponentialRampToValueAtTime(130, now + 3.2);
     coreFilter.Q.value = 0.55;
 
     core.connect(coreFilter);
     coreFilter.connect(coreGain);
-    coreGain.connect(this.masterGain);
+    coreGain.connect(warpBus);
     core.start(now);
     core.stop(now + 3.25);
 
     // Harmonic body that thickens the warp tone.
     const harmonic = ctx.createOscillator();
     harmonic.type = "triangle";
-    harmonic.frequency.setValueAtTime(62, now);
-    harmonic.frequency.exponentialRampToValueAtTime(280, now + 0.85);
-    harmonic.frequency.exponentialRampToValueAtTime(56, now + 3.05);
+    harmonic.frequency.setValueAtTime(48, now);
+    harmonic.frequency.exponentialRampToValueAtTime(220, now + 0.85);
+    harmonic.frequency.exponentialRampToValueAtTime(44, now + 3.05);
 
     const harmonicGain = ctx.createGain();
     harmonicGain.gain.setValueAtTime(0.0001, now);
-    harmonicGain.gain.linearRampToValueAtTime(0.21, now + 0.1);
-    harmonicGain.gain.setValueAtTime(0.15, now + 0.95);
+    harmonicGain.gain.linearRampToValueAtTime(0.24, now + 0.1);
+    harmonicGain.gain.setValueAtTime(0.18, now + 0.95);
     harmonicGain.gain.exponentialRampToValueAtTime(0.001, now + 3.1);
 
     const harmonicFilter = ctx.createBiquadFilter();
     harmonicFilter.type = "bandpass";
-    harmonicFilter.frequency.setValueAtTime(130, now);
-    harmonicFilter.frequency.exponentialRampToValueAtTime(520, now + 0.9);
-    harmonicFilter.frequency.exponentialRampToValueAtTime(110, now + 3.1);
+    harmonicFilter.frequency.setValueAtTime(95, now);
+    harmonicFilter.frequency.exponentialRampToValueAtTime(360, now + 0.9);
+    harmonicFilter.frequency.exponentialRampToValueAtTime(82, now + 3.1);
     harmonicFilter.Q.value = 0.8;
 
     harmonic.connect(harmonicFilter);
     harmonicFilter.connect(harmonicGain);
-    harmonicGain.connect(this.masterGain);
+    harmonicGain.connect(warpBus);
     harmonic.start(now);
     harmonic.stop(now + 3.15);
 
@@ -441,79 +485,106 @@ class AudioManager {
 
     const noiseFilter = ctx.createBiquadFilter();
     noiseFilter.type = "bandpass";
-    noiseFilter.frequency.setValueAtTime(65, now);
-    noiseFilter.frequency.exponentialRampToValueAtTime(560, now + 1.0);
-    noiseFilter.frequency.exponentialRampToValueAtTime(95, now + 3.35);
+    noiseFilter.frequency.setValueAtTime(52, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(420, now + 1.0);
+    noiseFilter.frequency.exponentialRampToValueAtTime(72, now + 3.35);
     noiseFilter.Q.value = 0.75;
 
     const noiseGain = ctx.createGain();
     noiseGain.gain.setValueAtTime(0.0001, now);
-    noiseGain.gain.linearRampToValueAtTime(0.4, now + 0.08);
-    noiseGain.gain.setValueAtTime(0.3, now + 1.1);
+    noiseGain.gain.linearRampToValueAtTime(0.46, now + 0.08);
+    noiseGain.gain.setValueAtTime(0.34, now + 1.1);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 3.4);
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
-    noiseGain.connect(this.masterGain);
+    noiseGain.connect(warpBus);
     noiseSource.start(now);
 
     // Low-end warp rumble to keep the launch feeling heavy.
     const sub = ctx.createOscillator();
     sub.type = "sine";
-    sub.frequency.setValueAtTime(28, now);
-    sub.frequency.exponentialRampToValueAtTime(52, now + 1.1);
-    sub.frequency.exponentialRampToValueAtTime(30, now + 3.2);
+    sub.frequency.setValueAtTime(22, now);
+    sub.frequency.exponentialRampToValueAtTime(40, now + 1.1);
+    sub.frequency.exponentialRampToValueAtTime(24, now + 3.2);
 
     const subGain = ctx.createGain();
     subGain.gain.setValueAtTime(0.0001, now);
-    subGain.gain.linearRampToValueAtTime(0.24, now + 0.16);
-    subGain.gain.setValueAtTime(0.2, now + 1.1);
+    subGain.gain.linearRampToValueAtTime(0.3, now + 0.16);
+    subGain.gain.setValueAtTime(0.25, now + 1.1);
     subGain.gain.exponentialRampToValueAtTime(0.001, now + 3.3);
 
     sub.connect(subGain);
-    subGain.connect(this.masterGain);
+    subGain.connect(warpBus);
     sub.start(now);
     sub.stop(now + 3.3);
 
     // Extra bass body adds weight and a less toy-like character.
     const bassBody = ctx.createOscillator();
     bassBody.type = "sawtooth";
-    bassBody.frequency.setValueAtTime(24, now);
-    bassBody.frequency.exponentialRampToValueAtTime(42, now + 1.0);
-    bassBody.frequency.exponentialRampToValueAtTime(26, now + 3.2);
+    bassBody.frequency.setValueAtTime(18, now);
+    bassBody.frequency.exponentialRampToValueAtTime(32, now + 1.0);
+    bassBody.frequency.exponentialRampToValueAtTime(20, now + 3.2);
 
     const bassFilter = ctx.createBiquadFilter();
     bassFilter.type = "lowpass";
-    bassFilter.frequency.setValueAtTime(120, now);
-    bassFilter.frequency.exponentialRampToValueAtTime(220, now + 1.0);
-    bassFilter.frequency.exponentialRampToValueAtTime(110, now + 3.2);
+    bassFilter.frequency.setValueAtTime(95, now);
+    bassFilter.frequency.exponentialRampToValueAtTime(170, now + 1.0);
+    bassFilter.frequency.exponentialRampToValueAtTime(88, now + 3.2);
     bassFilter.Q.value = 0.7;
 
     const bassGain = ctx.createGain();
     bassGain.gain.setValueAtTime(0.0001, now);
-    bassGain.gain.linearRampToValueAtTime(0.17, now + 0.18);
-    bassGain.gain.setValueAtTime(0.14, now + 1.1);
+    bassGain.gain.linearRampToValueAtTime(0.24, now + 0.18);
+    bassGain.gain.setValueAtTime(0.19, now + 1.1);
     bassGain.gain.exponentialRampToValueAtTime(0.001, now + 3.3);
 
     bassBody.connect(bassFilter);
     bassFilter.connect(bassGain);
-    bassGain.connect(this.masterGain);
+    bassGain.connect(warpBus);
     bassBody.start(now);
     bassBody.stop(now + 3.3);
+
+    // Coil flutter adds machine character without raising perceived pitch.
+    const coil = ctx.createOscillator();
+    coil.type = "square";
+    coil.frequency.setValueAtTime(76, now);
+    coil.frequency.exponentialRampToValueAtTime(140, now + 0.95);
+    coil.frequency.exponentialRampToValueAtTime(64, now + 3.15);
+
+    const coilTrem = ctx.createOscillator();
+    coilTrem.type = "sine";
+    coilTrem.frequency.value = 9.5;
+    const coilTremGain = ctx.createGain();
+    coilTremGain.gain.value = 0.016;
+
+    const coilGain = ctx.createGain();
+    coilGain.gain.setValueAtTime(0.02, now);
+    coilGain.gain.setValueAtTime(0.04, now + 0.8);
+    coilGain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
+
+    coilTrem.connect(coilTremGain);
+    coilTremGain.connect(coilGain.gain);
+    coil.connect(coilGain);
+    coilGain.connect(warpBus);
+    coil.start(now);
+    coil.stop(now + 3.25);
+    coilTrem.start(now);
+    coilTrem.stop(now + 3.25);
 
     // Deceleration whistle as we settle into local space.
     const decel = ctx.createOscillator();
     decel.type = "sine";
-    decel.frequency.setValueAtTime(180, now + 1.5);
-    decel.frequency.exponentialRampToValueAtTime(58, now + 3.35);
+    decel.frequency.setValueAtTime(140, now + 1.5);
+    decel.frequency.exponentialRampToValueAtTime(48, now + 3.35);
 
     const decelGain = ctx.createGain();
     decelGain.gain.setValueAtTime(0.0001, now + 1.45);
-    decelGain.gain.linearRampToValueAtTime(0.06, now + 1.58);
+    decelGain.gain.linearRampToValueAtTime(0.045, now + 1.58);
     decelGain.gain.exponentialRampToValueAtTime(0.001, now + 3.4);
 
     decel.connect(decelGain);
-    decelGain.connect(this.masterGain);
+    decelGain.connect(warpBus);
     decel.start(now + 1.45);
     decel.stop(now + 3.45);
   }

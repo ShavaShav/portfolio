@@ -180,7 +180,9 @@ export function Terminal({
         if (subcommand === "on" || subcommand === "off") {
           const nextEnabled = subcommand === "on";
           if (nextEnabled === audioEnabled) {
-            appendLine(`> Audio already ${nextEnabled ? "enabled" : "disabled"}.`);
+            appendLine(
+              `> Audio already ${nextEnabled ? "enabled" : "disabled"}.`,
+            );
             return;
           }
 

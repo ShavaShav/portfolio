@@ -71,7 +71,13 @@ function createMoonTexture(moon: MoonConfig) {
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(cx - radius * 0.22, cy - radius * 0.22, radius * 0.5, 0, Math.PI * 2);
+    ctx.arc(
+      cx - radius * 0.22,
+      cy - radius * 0.22,
+      radius * 0.5,
+      0,
+      Math.PI * 2,
+    );
     ctx.fillStyle = "rgba(218, 246, 255, 0.08)";
     ctx.fill();
   }
@@ -134,7 +140,11 @@ export function Moon({ moon, onSelect }: MoonProps) {
       }}
     >
       <sphereGeometry
-        args={[moon.radius, isEarlyCareerMoon ? 24 : 16, isEarlyCareerMoon ? 24 : 16]}
+        args={[
+          moon.radius,
+          isEarlyCareerMoon ? 24 : 16,
+          isEarlyCareerMoon ? 24 : 16,
+        ]}
       />
       <meshStandardMaterial
         color={moon.color}

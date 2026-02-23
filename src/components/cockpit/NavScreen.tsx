@@ -21,7 +21,9 @@ export function NavScreen({
   onFlyHome,
   visitedPlanets,
 }: NavScreenProps) {
-  const corePlanets = PLANETS.filter((planet) => planet.showOrbitLine !== false);
+  const corePlanets = PLANETS.filter(
+    (planet) => planet.showOrbitLine !== false,
+  );
   const hasOpenSourceActive = OORT_PROJECTS.some(
     (project) => project.id === activePlanetId,
   );

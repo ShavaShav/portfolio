@@ -28,7 +28,9 @@ function renderDataContent(
   state: ReturnType<typeof useAppContext>["state"],
   dispatch: ReturnType<typeof useAppContext>["dispatch"],
 ) {
-  const corePlanets = PLANETS.filter((planet) => planet.showOrbitLine !== false);
+  const corePlanets = PLANETS.filter(
+    (planet) => planet.showOrbitLine !== false,
+  );
   const openSourceVisitedCount = OORT_PROJECTS.reduce(
     (count, project) => count + (state.visitedPlanets.has(project.id) ? 1 : 0),
     0,
@@ -383,7 +385,8 @@ function CockpitExperience() {
         onToggleAudio={toggleAudio}
         panelTitles={{
           data: dataScreen.title,
-          companion: companionMode === "copilot" ? "COPILOT MODE" : "COMPANION COMMS",
+          companion:
+            companionMode === "copilot" ? "COPILOT MODE" : "COMPANION COMMS",
         }}
         panelPowered={{
           companion: companionMode !== "standby",
@@ -394,9 +397,7 @@ function CockpitExperience() {
               active={companionMode !== "standby"}
               collapsed={!headExpanded}
               isTalking={state.companion.isTyping}
-              onToggleCollapsed={() =>
-                setHeadExpanded((expanded) => !expanded)
-              }
+              onToggleCollapsed={() => setHeadExpanded((expanded) => !expanded)}
             />
           ),
         }}
