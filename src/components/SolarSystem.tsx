@@ -115,7 +115,10 @@ export function SolarSystem({
             ))
           : null}
         {showOrbitLines ? (
-          <OrbitLine inclination={-0.1} radius={OORT_CLOUD.baseOrbitRadius} />
+          <OrbitLine
+            inclination={OORT_CLOUD.orbitInclination}
+            radius={OORT_CLOUD.baseOrbitRadius}
+          />
         ) : null}
 
         {PLANETS.map((planet) => (

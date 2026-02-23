@@ -12,6 +12,9 @@ export const OORT_CLOUD = {
   label: "Oort Cloud",
   subtitle: "Side Projects & Open Source",
   baseOrbitRadius: 17,
+  orbitSpeed: 0.018,
+  orbitInclination: -0.1,
+  orbitPhase: 5.5,
   color: "#06b6d4",
   emissive: "#0891b2",
   companionGreeting:
