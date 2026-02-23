@@ -163,7 +163,7 @@ function CockpitExperience() {
     string | null
   >(null);
   const [showTransmission, setShowTransmission] = useState(false);
-  const [headVisible, setHeadVisible] = useState(false);
+  const [headExpanded, setHeadExpanded] = useState(false);
   const headOpenedRef = useRef(false);
   const { isMobile, qualityTier } = useDeviceCapability();
   const performanceTier = usePerformanceTier(qualityTier);
@@ -227,7 +227,7 @@ function CockpitExperience() {
   useEffect(() => {
     if (companionMode !== "standby" && !headOpenedRef.current) {
       headOpenedRef.current = true;
-      setHeadVisible(true);
+      setHeadExpanded(true);
     }
   }, [companionMode]);
 
@@ -374,14 +374,16 @@ function CockpitExperience() {
           companion: companionMode !== "standby",
         }}
         panelPopouts={{
-          companion: headVisible ? (
+          companion: (
             <TalkingHead
               active={companionMode !== "standby"}
+              collapsed={!headExpanded}
               isTalking={state.companion.isTyping}
-              position="side"
-              onClose={() => setHeadVisible(false)}
+              onToggleCollapsed={() =>
+                setHeadExpanded((expanded) => !expanded)
+              }
             />
-          ) : undefined,
+          ),
         }}
         screens={{
           nav: (
