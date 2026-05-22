@@ -1,4 +1,5 @@
-﻿import { getPlanetById } from "../data/planets";
+﻿import { trackLink } from "../analytics";
+import { getPlanetById } from "../data/planets";
 import { getPlanetContent } from "../data/planetContent";
 import "./PlanetDetail.css";
 
@@ -64,6 +65,7 @@ export function PlanetDetail({ planetId, onStartMission }: PlanetDetailProps) {
               <a
                 href={link.href}
                 key={link.href}
+                onClick={() => trackLink(link.label, link.href)}
                 rel="noreferrer"
                 target="_blank"
               >

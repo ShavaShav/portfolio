@@ -23,6 +23,7 @@ export const TERMINAL_COMMANDS: TerminalCommandDefinition[] = [
   { command: "sudo", description: "You can try" },
   { command: "clear", description: "Clear terminal output" },
   { command: "resume", description: "Open resume PDF" },
+  { command: "privacy", description: "Analytics & privacy disclosure" },
 ];
 
 export const TERMINAL_LAUNCH_LINES = [
@@ -44,6 +45,12 @@ export const TERMINAL_STATIC_RESPONSES: Record<string, string[]> = {
     "> obviant/ aws/ riskfuel/ early-career/ express-openapi-zod/ react-native-midi/ juzahach/ react-native-soundfont/ midio/ indepocket/ about/",
   ],
   sudo: ["> Nice try."],
+  privacy: [
+    "> Privacy: first-party analytics only - no cookies, no third-party scripts.",
+    "> A session id lives in sessionStorage and clears when you close the tab.",
+    "> DNT/GPC signals are honored; raw IP addresses are never stored.",
+    "> Full disclosure: docs/privacy.md",
+  ],
 };
 
 export const UNKNOWN_COMMAND_RESPONSE = "> Command not found. Type 'help'.";

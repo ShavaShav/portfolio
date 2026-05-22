@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
+import { trackApiCall } from "../analytics";
+
 export type ChatMessage = {
   role: "user" | "assistant" | "system";
   content: string;
@@ -45,57 +47,61 @@ export function useChat(sessionId: string) {
       abortRef.current = controller;
 
       try {
-        const response = await fetch(`${API_URL}/api/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text,
-            sessionId,
-            companionContext: context,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          throw new Error("No response body");
-        }
-
         const decoder = new TextDecoder();
         let botContent = "";
+        let assistantAdded = false;
 
-        // Add empty assistant message that we'll stream into
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          botContent += decoder.decode(value, { stream: true });
-          const current = botContent;
-          setMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = {
-              role: "assistant",
-              content: current,
-            };
-            return updated;
-          });
-        }
-      } catch (error) {
-        if ((error as Error).name === "AbortError") return;
-
-        setMessages((prev) => [
-          ...prev,
+        // Wrap the streaming chat fetch in trackApiCall so the round trip is
+        // timed and recorded as an `api_call` event (design D11). The wrapper
+        // owns the body read loop; each decoded chunk arrives via onChunk and
+        // is streamed into the assistant message, while trackApiCall never
+        // rejects — it resolves to a four-way outcome we branch on below.
+        const result = await trackApiCall(
+          `${API_URL}/api/chat`,
           {
-            role: "system",
-            content: "COMMS ERROR - Connection lost. Check your connection.",
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text,
+              sessionId,
+              companionContext: context,
+            }),
+            signal: controller.signal,
           },
-        ]);
+          {
+            onChunk: (chunk) => {
+              botContent += decoder.decode(chunk, { stream: true });
+              const current = botContent;
+              setMessages((prev) => {
+                // First chunk: append the assistant message to stream into.
+                if (!assistantAdded) {
+                  assistantAdded = true;
+                  return [...prev, { role: "assistant", content: current }];
+                }
+                const updated = [...prev];
+                updated[updated.length - 1] = {
+                  role: "assistant",
+                  content: current,
+                };
+                return updated;
+              });
+            },
+          },
+        );
+
+        // A user-aborted request is intentional — leave the messages as-is.
+        if (result.outcome === "abort") return;
+
+        // A server rejection or transport failure surfaces as a comms error.
+        if (result.outcome !== "ok") {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "system",
+              content: "COMMS ERROR - Connection lost. Check your connection.",
+            },
+          ]);
+        }
       } finally {
         setIsLoading(false);
         abortRef.current = null;

@@ -1,11 +1,14 @@
 ﻿import {
   createContext,
+  useCallback,
   useContext,
   useMemo,
   useReducer,
   type Dispatch,
   type PropsWithChildren,
 } from "react";
+
+import { actionToEvents, track } from "../analytics";
 
 export type ChatRole = "system" | "assistant" | "user";
 
@@ -217,9 +220,22 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const stateValue = useMemo(() => state, [state]);
 
+  // Dispatch tap (design D3, C4). Every action is forwarded to the reducer and,
+  // separately, run through the pure `actionToEvents` mapper with each derived
+  // event handed to `track()`. The tap lives here at the context boundary —
+  // never inside `appReducer`, which must stay a pure, side-effect-free
+  // function. `dispatch` from `useReducer` is stable, so the wrapper is
+  // memoized once and keeps a steady identity for context consumers.
+  const trackedDispatch = useCallback<Dispatch<AppAction>>((action) => {
+    dispatch(action);
+    for (const event of actionToEvents(action)) {
+      track(event);
+    }
+  }, []);
+
   return (
     <AppStateContext.Provider value={stateValue}>
-      <AppDispatchContext.Provider value={dispatch}>
+      <AppDispatchContext.Provider value={trackedDispatch}>
         {children}
       </AppDispatchContext.Provider>
     </AppStateContext.Provider>

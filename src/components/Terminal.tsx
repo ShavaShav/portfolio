@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { trackLink } from "../analytics";
 import { audioManager } from "../audio/AudioManager";
 import { getDeviceCapability } from "../hooks/useDeviceCapability";
 import {
@@ -213,6 +214,7 @@ export function Terminal({
       }
 
       if (command === "resume") {
+        trackLink("Resume", "/resume.pdf");
         window.open("/resume.pdf", "_blank", "noopener,noreferrer");
         appendLine(
           "> Opening resume in a new tab. If blocked, allow popups for this site.",
