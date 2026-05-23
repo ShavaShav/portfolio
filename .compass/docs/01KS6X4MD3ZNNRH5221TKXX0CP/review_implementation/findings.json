@@ -1,0 +1,42 @@
+[
+  {
+    "id": "FIND-01",
+    "severity": "major",
+    "title": "getClientContext() is implemented and tested but never wired into batches",
+    "file": "src/analytics/core.ts",
+    "detail": "identity.ts exports getClientContext() (ua, lang, viewport, tier, dnt) and the function has full test coverage in identity.test.ts. The server contract at docs/analytics-server-contract.md §2.5 shows a 'client' field in the Batch wire-format example. However, the Batch TypeScript interface in types.ts has no 'client' field, and buildBatch() in core.ts never calls getClientContext(). Every production batch is therefore missing device/browser telemetry permanently. The server treats the field as optional and tolerates its absence, so nothing breaks, but this is a systematic, silent data gap — the implementation built the capability and then never activated it.",
+    "recommendation": "Add an optional 'client?: ClientContext' field to the Batch interface in types.ts, and call getClientContext() inside buildBatch() to populate it. Re-export getClientContext from index.ts barrel if callers need it."
+  },
+  {
+    "id": "FIND-02",
+    "severity": "major",
+    "title": "VITE_ANALYTICS_URL absent from CI deploy.yml — production analytics silently fail",
+    "file": ".github/workflows/deploy.yml",
+    "detail": "index.ts documents that production builds set VITE_ANALYTICS_URL to the absolute collector endpoint; the development fallback is /api/events. The deploy.yml build step passes VITE_API_URL (the chat API) but never VITE_ANALYTICS_URL. On GitHub Pages /api/events is a 404, so every beacon and fetch fallback silently fails and no analytics data reaches the collector. This is likely intentional pending portfolio-api deployment (the server contract §7 checklist marks /api/events/summary auth and the retention cron as unshipped ship gates), but as-shipped the feature collects nothing in production.",
+    "recommendation": "Add VITE_ANALYTICS_URL: ${{ secrets.VITE_ANALYTICS_URL }} to the build env block in deploy.yml once the portfolio-api collector is deployed. Document the dependency explicitly in the ship-gate checklist."
+  },
+  {
+    "id": "FIND-03",
+    "severity": "minor",
+    "title": "ErrorEvent.message documented as 'already scrubbed of PII' but no scrubbing exists",
+    "file": "src/analytics/types.ts:104",
+    "detail": "The ErrorEvent.message field carries the JSDoc comment 'Error message — already scrubbed of PII by the capture layer.' No PII scrubbing occurs anywhere in the capture layer: describeError() in errors.ts forwards the raw Error.message verbatim, and the report() path passes it straight to track(). The comment is a forward-promise that was never implemented, which could mislead future maintainers into assuming PII is stripped when it is not.",
+    "recommendation": "Either implement a scrubber (regex strip of emails, UUIDs, paths, tokens) before building the ErrorEvent, or reword the JSDoc to accurately reflect that error messages are passed through unchanged and callers are responsible for not including PII."
+  },
+  {
+    "id": "FIND-04",
+    "severity": "minor",
+    "title": "fetch() in BeaconSink fallback and trackApiCall lacks a request timeout",
+    "file": "src/analytics/sink.ts:161, src/analytics/apiTracking.ts:230",
+    "detail": "BeaconSink.fetchFallback() and trackApiCall() both call fetch() with no AbortSignal timeout. A collector that hangs (stalled TCP, long poll, etc.) will leave the promise pending indefinitely. The no-throw contract means the hang is eventually swallowed, not surfaced to the user, but keepalive fetches can still delay garbage collection of the page context on unload. AbortSignal.timeout() is available in all target browsers.",
+    "recommendation": "Pass AbortSignal.timeout(5000) in BeaconSink.fetchFallback() headers to bound worst-case latency. For trackApiCall() the caller already supplies an AbortSignal; the gap is only in the absence of a default maximum duration."
+  },
+  {
+    "id": "FIND-05",
+    "severity": "minor",
+    "title": "installPerformanceMonitoring() has no uninstall path, unlike installErrorHandlers()",
+    "file": "src/analytics/performance.ts:128-153",
+    "detail": "installErrorHandlers() has a symmetric uninstallErrorHandlers() that is used in test teardown. installPerformanceMonitoring() has no such counterpart: once called, the web-vitals subscriptions and Navigation Timing listener cannot be detached, and monitoringInstalled cannot be reset without vi.resetModules(). This creates asymmetry that makes isolated integration testing harder and would cause issues in any future server-side-rendering or module-hot-reload context.",
+    "recommendation": "Add an uninstallPerformanceMonitoring() that resets monitoringInstalled = false. web-vitals does not expose a public unsubscribe API, so document that the metric callbacks themselves cannot be cancelled — only the idempotency guard can be reset."
+  }
+]
