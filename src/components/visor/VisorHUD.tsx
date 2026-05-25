@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { audioManager } from "../../audio/AudioManager";
 import { AudioToggle } from "../ui/AudioToggle";
 import { OverlaySheet } from "../ui/OverlaySheet";
+import { SettingsPanel } from "../ui/SettingsPanel";
 import { TalkingHead } from "../ui/TalkingHead";
 import "./visor.css";
 
@@ -31,6 +32,7 @@ export function VisorHUD({
   const [openSheet, setOpenSheet] = useState<"map" | "data" | "ai" | null>(
     null,
   );
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const closeSheet = () => setOpenSheet(null);
 
@@ -54,6 +56,17 @@ export function VisorHUD({
       <header className="visor-hud__top">
         <div className="visor-hud__monogram">ZS</div>
         <span className="visor-hud__status">{statusText}</span>
+        <button
+          className="visor-hud__settings"
+          onClick={() => {
+            audioManager.playClick();
+            setSettingsOpen(true);
+          }}
+          type="button"
+          aria-label="Open settings"
+        >
+          ⚙
+        </button>
         <AudioToggle enabled={audioEnabled} onToggle={onToggleAudio} />
       </header>
 
@@ -120,6 +133,11 @@ export function VisorHUD({
         />
         {companionContent}
       </OverlaySheet>
+
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
   );
 }

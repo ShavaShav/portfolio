@@ -30,11 +30,13 @@ function stubReferrer(value: string): void {
 
 beforeEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   sessionStorage.clear();
+  localStorage.clear();
   // Drop any per-test overrides so they cannot leak into the next test.
   Reflect.deleteProperty(navigator, "doNotTrack");
   Reflect.deleteProperty(navigator, "globalPrivacyControl");
@@ -123,6 +125,19 @@ describe("isDoNotTrack", () => {
     stubNav("globalPrivacyControl", true);
     const m = await loadIdentity();
     expect(m.isDoNotTrack()).toBe(true);
+  });
+
+  it("is true when the in-app opt-out preference is set", async () => {
+    localStorage.setItem("pf.analytics.opt_out", "1");
+    const m = await loadIdentity();
+    expect(m.isDoNotTrack()).toBe(true);
+  });
+
+  it("is false when the in-app preference is cleared and no browser signal is set", async () => {
+    localStorage.setItem("pf.analytics.opt_out", "1");
+    localStorage.removeItem("pf.analytics.opt_out");
+    const m = await loadIdentity();
+    expect(m.isDoNotTrack()).toBe(false);
   });
 });
 

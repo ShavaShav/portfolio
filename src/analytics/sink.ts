@@ -77,7 +77,11 @@ export interface BatchSizeReport {
  */
 export function checkBatchSize(serialized: string): BatchSizeReport {
   const bytes = byteLength(serialized);
-  return { bytes, budget: MAX_BATCH_BYTES, overBudget: bytes > MAX_BATCH_BYTES };
+  return {
+    bytes,
+    budget: MAX_BATCH_BYTES,
+    overBudget: bytes > MAX_BATCH_BYTES,
+  };
 }
 
 /* -------------------------------------------------------------------------- */

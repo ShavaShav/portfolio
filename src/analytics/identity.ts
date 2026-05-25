@@ -15,7 +15,11 @@
  * Design reference: §5.4, review #9, review #10.
  */
 
-import { getDeviceCapability, type QualityTier } from "../hooks/useDeviceCapability";
+import {
+  getDeviceCapability,
+  type QualityTier,
+} from "../hooks/useDeviceCapability";
+import { getAnalyticsOptOut } from "./preference";
 import type { SessionRef } from "./types";
 
 /** `sessionStorage` key the session id is persisted under. */
@@ -78,26 +82,27 @@ export function getSessionRef(): SessionRef {
 }
 
 /**
- * A {@link Navigator} extended with the privacy-signal properties, which are
- * non-standard (`globalPrivacyControl`) or deprecated (`doNotTrack`) and so
- * absent from the standard lib type.
+ * A {@link Navigator} extended with the {@link globalPrivacyControl} signal —
+ * non-standard and so absent from the standard lib type. `doNotTrack` is part
+ * of `Navigator` itself in current TypeScript lib.dom and is read directly off
+ * the navigator without an interface extension.
  */
 interface PrivacyNavigator extends Navigator {
-  /** Legacy Do-Not-Track opt-in; `"1"` means "do not track". */
-  doNotTrack?: string | null;
   /** Global Privacy Control signal; `true` means "do not sell/share". */
   globalPrivacyControl?: boolean;
 }
 
 /**
- * `true` when the user has expressed a tracking opt-out via either the legacy
- * Do-Not-Track signal (`navigator.doNotTrack === "1"`) or Global Privacy
- * Control (`navigator.globalPrivacyControl === true`). Callers should suppress
- * collection when this is set.
+ * `true` when the user has expressed a tracking opt-out via any of: the legacy
+ * Do-Not-Track signal (`navigator.doNotTrack === "1"`), Global Privacy Control
+ * (`navigator.globalPrivacyControl === true`), or the in-app analytics opt-out
+ * preference set from the Settings panel ({@link getAnalyticsOptOut}). Callers
+ * should suppress collection when this is set.
  */
 export function isDoNotTrack(): boolean {
   const nav = navigator as PrivacyNavigator;
-  return nav.doNotTrack === "1" || nav.globalPrivacyControl === true;
+  if (nav.doNotTrack === "1" || nav.globalPrivacyControl === true) return true;
+  return getAnalyticsOptOut();
 }
 
 /**

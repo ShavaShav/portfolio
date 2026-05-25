@@ -125,6 +125,23 @@
   color: #f5f8ff;
 }
 
+.cockpit-frame__settings {
+  border: 1px solid rgba(228, 236, 255, 0.28);
+  background: transparent;
+  color: rgba(228, 236, 255, 0.6);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.cockpit-frame__settings:hover {
+  background: rgba(228, 236, 255, 0.1);
+  color: #f5f8ff;
+}
+
 .social-links {
   display: flex;
   gap: 8px;

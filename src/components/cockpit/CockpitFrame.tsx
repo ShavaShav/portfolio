@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AudioToggle } from "../ui/AudioToggle";
+import { SettingsPanel } from "../ui/SettingsPanel";
 import { SocialLinks } from "../ui/SocialLinks";
 
 const BOOT_LINES = [
@@ -24,6 +25,7 @@ export function CockpitFrame({
   onResetLayout,
 }: CockpitFrameProps) {
   const [bootText, setBootText] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const hasBootedRef = useRef(false);
 
   useEffect(() => {
@@ -65,9 +67,20 @@ export function CockpitFrame({
             RESET
           </button>
         ) : null}
+        <button
+          className="cockpit-frame__settings"
+          onClick={() => setSettingsOpen(true)}
+          type="button"
+        >
+          SETTINGS
+        </button>
         <AudioToggle enabled={audioEnabled} onToggle={onToggleAudio} />
         <SocialLinks />
       </div>
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </header>
   );
 }

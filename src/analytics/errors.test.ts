@@ -242,9 +242,7 @@ describe("AnalyticsBoundary", () => {
     render(createElement(AnalyticsBoundary, null, createElement(Boom)));
 
     expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /reload/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reload/i })).toBeInTheDocument();
     // The crashed subtree must not be rendered — no blank 3D scene [review #11].
     expect(screen.queryByText("render crash")).not.toBeInTheDocument();
   });

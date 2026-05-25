@@ -15,8 +15,9 @@
  *   {@link actionToEvents} action→event constructor, and the wire-format types.
  *
  * Privacy gate (design D8). {@link init} consults {@link isDoNotTrack} — the
- * legacy Do-Not-Track signal and Global Privacy Control. When the user has
- * opted out it installs a {@link NullSink} (the capture pipeline still runs so
+ * legacy Do-Not-Track signal, Global Privacy Control, and the in-app opt-out
+ * preference set from the Settings panel. When the user has opted out via any
+ * of those it installs a {@link NullSink} (the capture pipeline still runs so
  * stray `track()` calls drain harmlessly, but nothing leaves the device) and
  * registers **no** error or `web-vitals` listeners. Otherwise it installs the
  * production {@link BeaconSink}, attaches the global error handlers, and wires
@@ -58,7 +59,9 @@ export interface AnalyticsInitOptions {
  * `VITE_ANALYTICS_URL` env var, then the same-origin {@link DEFAULT_COLLECTOR_URL}.
  */
 function resolveCollectorUrl(override: string | undefined): string {
-  return override ?? import.meta.env.VITE_ANALYTICS_URL ?? DEFAULT_COLLECTOR_URL;
+  return (
+    override ?? import.meta.env.VITE_ANALYTICS_URL ?? DEFAULT_COLLECTOR_URL
+  );
 }
 
 /**
@@ -111,6 +114,9 @@ export { useFrameHealth } from "./performance";
 
 // React error boundary (design D6 / D14).
 export { AnalyticsBoundary } from "./errors";
+
+// User-set opt-out preference, read/written by the Settings panel.
+export { getAnalyticsOptOut, setAnalyticsOptOut } from "./preference";
 
 // Wire-format vocabulary & contracts (§5.1–5.4).
 export type {
