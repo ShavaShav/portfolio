@@ -58,7 +58,9 @@ export interface AnalyticsInitOptions {
  * `VITE_ANALYTICS_URL` env var, then the same-origin {@link DEFAULT_COLLECTOR_URL}.
  */
 function resolveCollectorUrl(override: string | undefined): string {
-  return override ?? import.meta.env.VITE_ANALYTICS_URL ?? DEFAULT_COLLECTOR_URL;
+  return (
+    override ?? import.meta.env.VITE_ANALYTICS_URL ?? DEFAULT_COLLECTOR_URL
+  );
 }
 
 /**

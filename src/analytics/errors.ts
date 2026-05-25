@@ -174,8 +174,7 @@ export function uninstallErrorHandlers(): void {
 /* -------------------------------------------------------------------------- */
 
 /** Copy shown in the boundary's fallback UI. */
-const FALLBACK_MESSAGE =
-  "Something went wrong while rendering this page.";
+const FALLBACK_MESSAGE = "Something went wrong while rendering this page.";
 
 /** Layout for the fallback container — a simple centered, full-height panel. */
 const containerStyle: CSSProperties = {

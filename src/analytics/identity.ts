@@ -15,7 +15,10 @@
  * Design reference: §5.4, review #9, review #10.
  */
 
-import { getDeviceCapability, type QualityTier } from "../hooks/useDeviceCapability";
+import {
+  getDeviceCapability,
+  type QualityTier,
+} from "../hooks/useDeviceCapability";
 import type { SessionRef } from "./types";
 
 /** `sessionStorage` key the session id is persisted under. */
@@ -78,13 +81,12 @@ export function getSessionRef(): SessionRef {
 }
 
 /**
- * A {@link Navigator} extended with the privacy-signal properties, which are
- * non-standard (`globalPrivacyControl`) or deprecated (`doNotTrack`) and so
- * absent from the standard lib type.
+ * A {@link Navigator} extended with `globalPrivacyControl`, a non-standard
+ * privacy signal absent from the standard lib type. The legacy `doNotTrack`
+ * property is already declared on `Navigator` (`string | null`), so it is
+ * inherited here rather than redeclared.
  */
 interface PrivacyNavigator extends Navigator {
-  /** Legacy Do-Not-Track opt-in; `"1"` means "do not track". */
-  doNotTrack?: string | null;
   /** Global Privacy Control signal; `true` means "do not sell/share". */
   globalPrivacyControl?: boolean;
 }
