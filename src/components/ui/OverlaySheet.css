@@ -5,6 +5,10 @@
   pointer-events: none;
 }
 
+.overlay-sheet-container[hidden] {
+  display: none;
+}
+
 .overlay-sheet__backdrop {
   position: absolute;
   inset: 0;

@@ -8,6 +8,8 @@ type OverlaySheetProps = {
   onClose: () => void;
   height: "60%" | "70%" | "85%" | "100%";
   title: string;
+  /** Preserve stateful content, such as chat, while the sheet is closed. */
+  keepMounted?: boolean;
   children: ReactNode;
 };
 
@@ -16,6 +18,7 @@ export function OverlaySheet({
   onClose,
   height,
   title,
+  keepMounted = false,
   children,
 }: OverlaySheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -46,8 +49,12 @@ export function OverlaySheet({
       );
     } else {
       // Slide down
-      gsap.to(sheet, { y: "100%", duration: 0.25, ease: "power2.in" });
-      gsap.to(backdrop, { opacity: 0, duration: 0.2 });
+      gsap.to(sheet, {
+        y: "100%",
+        duration: reducedMotion ? 0 : 0.25,
+        ease: "power2.in",
+      });
+      gsap.to(backdrop, { opacity: 0, duration: reducedMotion ? 0 : 0.2 });
     }
     return () => {
       gsap.killTweensOf(sheet);
@@ -71,7 +78,7 @@ export function OverlaySheet({
         sheet.querySelectorAll<HTMLElement>(
           'button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]',
         ),
-      );
+      ).filter((target) => !target.closest("[hidden]"));
       const first = targets[0];
       const last = targets[targets.length - 1];
       if (!first) {
@@ -100,10 +107,10 @@ export function OverlaySheet({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !keepMounted) return null;
 
   return (
-    <div className="overlay-sheet-container">
+    <div className="overlay-sheet-container" hidden={!isOpen}>
       {/* Backdrop */}
       <div
         className="overlay-sheet__backdrop"

@@ -556,7 +556,9 @@
   display: none;
 }
 .visor-hud__top {
-  height: 60px;
+  height: auto;
+  min-height: 60px;
+  gap: 12px;
   padding: max(12px, env(safe-area-inset-top)) 18px 12px;
   background: #0b1420;
   border-color: var(--ui-border);
@@ -568,9 +570,14 @@
   letter-spacing: -0.06em;
 }
 .visor-hud__status {
+  position: static;
+  transform: none;
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  text-align: center;
   color: var(--ui-muted);
   font-size: 8px;
-  max-width: 140px;
 }
 .visor-hud__bottom {
   height: auto;
@@ -584,6 +591,10 @@
   font-size: 8px;
 }
 .visor-hud__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 44px;
   min-width: 48px;
   padding: 8px 12px;
@@ -598,9 +609,144 @@
   color: var(--ui-accent);
 }
 .visor-hud__tap-hint {
+  width: calc(100% - 32px);
+  text-align: center;
+  line-height: 1.6;
+  animation: none;
   color: #a7bbc6;
   font-size: 9px;
   bottom: 22px;
+}
+.visor-hud__back,
+.visor-hud__sheet-actions button {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: #a0c1d508;
+  color: var(--ui-accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.visor-hud__chat-ready {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ui-accent);
+}
+.visor-hud .overlay-sheet__close {
+  min-width: 44px;
+  min-height: 44px;
+}
+.visor-hud .overlay-sheet__body:has(> .visor-hud__destination) {
+  display: flex;
+  overflow: hidden;
+  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+}
+.visor-hud__destination {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+.visor-hud__panel-switcher {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.visor-hud__panel-switcher button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: #a0c1d508;
+  color: var(--ui-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.visor-hud__panel-switcher button.is-active {
+  background: var(--ui-accent-soft);
+  border-color: #8ce8cd55;
+  color: var(--ui-accent);
+}
+.visor-hud__sheet-pane {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.visor-hud__sheet-pane[hidden] {
+  display: none;
+}
+.visor-hud__sheet-pane--chat {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.visor-hud__sheet-pane--chat > .cockpit-screen {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}
+.visor-hud__sheet-pane--chat .companion-screen__messages {
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+.visor-hud__sheet-pane--chat .companion-screen__input {
+  flex-shrink: 0;
+}
+.visor-hud__sheet-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-border);
+}
+.visor-hud__sheet-actions button {
+  flex: 1;
+}
+@media (max-width: 360px) {
+  .visor-hud__telemetry {
+    display: none;
+  }
+  .visor-hud__buttons {
+    width: 100%;
+  }
+  .visor-hud__btn {
+    flex: 1;
+  }
+}
+@media (max-height: 500px) {
+  .visor-hud .overlay-sheet {
+    height: 100% !important;
+  }
+  .visor-hud .overlay-sheet__header {
+    padding: max(8px, env(safe-area-inset-top)) 16px 8px;
+  }
+  .visor-hud__destination {
+    gap: 8px;
+  }
+  .visor-hud__sheet-pane--chat .talking-head__wrapper--mobile {
+    display: none;
+  }
+  .visor-hud__sheet-actions {
+    padding-top: 8px;
+  }
 }
 @media (max-width: 1200px) {
   .cockpit-frame__designation {

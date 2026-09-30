@@ -17,6 +17,15 @@ refresh changes presentation, framing, and rendering budgets, not the API.
 - Updated mobile sheets, safe-area padding, larger touch controls, labeled
   controls, keyboard-accessible map destinations, dialog focus containment,
   Escape-to-close, and reduced-motion support for CSS and camera/sheet tweens.
+- Mobile arrival automatically opens the selected world's details, with an
+  adjacent **Chat with Zach** button. Map selection closes the map during
+  approach; status and hints distinguish exploring, approaching, and returning.
+  **Back to system** is available both inside the panel and in the scene header.
+  Missions also provide a **Back to planet** action.
+- Mobile chat remains mounted while hidden, preserving messages, drafts,
+  streaming responses, and greetings. Switching between mission and chat keeps
+  mission progress. Short landscape views use a full-height sheet with the
+  decorative portrait hidden to keep chat and return controls reachable.
 
 ## Scene and physics
 
@@ -41,7 +50,7 @@ refresh changes presentation, framing, and rendering budgets, not the API.
 
 The WebGL scene is lazy-loaded when launching; it is not part of the terminal's
 initial JavaScript bundle. The production entry bundle went from **1,426.23 kB
-to about 405.3 kB** (uncompressed), and **409.44 kB to about 132.3 kB** gzipped:
+to about 407.5 kB** (uncompressed), and **409.44 kB to about 132.9 kB** gzipped:
 approximately **71% less initial JavaScript / 68% less compressed transfer**.
 The complete scene is still substantial and Vite may report a large lazy chunk.
 This is a loading improvement, not a measured claim about device FPS.
@@ -86,16 +95,19 @@ npm test
 npm run build
 ```
 
-The 30 regression tests cover terminal commands and mobile-only launch controls,
+The 38 regression tests cover terminal commands and mobile-only launch controls,
 quality downgrade behavior, StrictMode, device ceilings, render budgets,
 material cleanup, portrait framing,
-stored/resized panel layouts, and mobile dialog behavior. Vitest discovery is
+stored/resized panel layouts, mobile arrival/return flows, persistent panel
+content, and dialog focus behavior. Vitest discovery is
 limited to `src/` so unrelated nested workspace checkouts are not run as tests.
 
 Browser checks exercise desktop/mobile navigation, a complete mission,
 streaming chat with a mocked API response, portrait/landscape layouts, panel
 dragging/resizing/minimizing/restoring/resetting, viewport clamping, and
-high/medium/low WebGL rendering. The production-bundle check also verifies that
+high/medium/low WebGL rendering. Mobile checks also cover direct 3D taps,
+automatic arrival panels, greetings, chat persistence, contextual mission chat,
+and returns from both the sheet and header. The production-bundle check verifies that
 the scene is loaded only after launch. Real API responses and physical-device
 GPU performance still need to be checked after deployment; the browser checks
 use software WebGL.

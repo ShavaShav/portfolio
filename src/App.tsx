@@ -360,23 +360,31 @@ function CockpitExperience() {
     state.view.type === "MISSION" ? state.view.missionId : undefined;
 
   if (isMobile) {
-    const mobileStatusText = activePlanetId
-      ? activePlanetId.toUpperCase()
-      : flyingToPlanetId
-        ? `-> ${flyingToPlanetId.toUpperCase()}`
-        : "DIGITAL COSMOS";
+    const mobileDestinationId = flyingToPlanetId ?? activePlanetId;
 
     return (
       <VisorHUD
         audioEnabled={state.audioEnabled}
+        view={state.view}
+        destinationLabel={
+          mobileDestinationId
+            ? getPlanetById(mobileDestinationId)?.label
+            : undefined
+        }
+        onReturnToSystem={() => {
+          setShowTransmission(false);
+          dispatch({ type: "FLY_HOME" });
+        }}
+        onExitMission={() => dispatch({ type: "EXIT_MISSION" })}
         canvas={canvas}
-        companionContent={
+        companionContent={(isVisible) => (
           <CompanionScreen
+            isVisible={isVisible}
             mode={companionMode}
             missionId={companionMissionId}
             planetId={activePlanetId}
           />
-        }
+        )}
         companionTalking={state.companion.isTyping}
         dataContent={dataScreen.content}
         dataTitle={dataScreen.title}
@@ -384,6 +392,7 @@ function CockpitExperience() {
           <MiniSystemMap
             activePlanetId={highlightedPlanetId}
             onSelectPlanet={(planetId) => {
+              setShowTransmission(false);
               audioManager.playClick();
               dispatch({ type: "FLY_TO_PLANET", planetId });
             }}
@@ -391,7 +400,6 @@ function CockpitExperience() {
           />
         }
         onToggleAudio={toggleAudio}
-        statusText={mobileStatusText}
       />
     );
   }

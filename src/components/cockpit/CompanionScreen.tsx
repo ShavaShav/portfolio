@@ -9,17 +9,20 @@ import { getMissionForPlanet } from "../../data/missions";
 import { useAppDispatch, useAppState } from "../../state/AppState";
 import { subscribeToCompanionMessages } from "../../state/companionBus";
 import { CockpitScreen } from "./CockpitScreen";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 
 type CompanionScreenProps = {
   mode?: "standby" | "active" | "copilot";
   planetId?: string;
   missionId?: string;
+  isVisible?: boolean;
 };
 
 export function CompanionScreen({
   mode = "standby",
   planetId,
   missionId,
+  isVisible = true,
 }: CompanionScreenProps) {
   const { chatSessionId, visitedPlanets } = useAppState();
   const dispatch = useAppDispatch();
@@ -29,6 +32,7 @@ export function CompanionScreen({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const greetedPlanetsRef = useRef<Set<string>>(new Set());
   const prevModeRef = useRef(mode);
+  const reducedMotion = useReducedMotion();
 
   const isActive = mode === "active" || mode === "copilot";
   const powered = isActive;
@@ -60,8 +64,12 @@ export function CompanionScreen({
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!isVisible) return;
+    messagesEndRef.current?.scrollIntoView({
+      behavior: reducedMotion || isLoading ? "auto" : "smooth",
+      block: "end",
+    });
+  }, [messages, isVisible, isLoading, reducedMotion]);
 
   useEffect(() => {
     dispatch({ type: "COMPANION_SET_TYPING", isTyping: isLoading });
