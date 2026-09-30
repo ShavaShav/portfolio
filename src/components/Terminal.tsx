@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { audioManager } from "../audio/AudioManager";
-import { getDeviceCapability } from "../hooks/useDeviceCapability";
+import { useDeviceCapability } from "../hooks/useDeviceCapability";
+import { useReducedMotion } from "../hooks/useReducedMotion";
 import {
   TERMINAL_INTRO_LINES,
   TERMINAL_LAUNCH_LINES,
@@ -46,6 +47,8 @@ export function Terminal({
   const [inputValue, setInputValue] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const { isMobile } = useDeviceCapability();
+  const reducedMotion = useReducedMotion();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -64,48 +67,53 @@ export function Terminal({
     ]);
   }, []);
 
-  const typeLine = useCallback((text: string, tone?: OutputLine["tone"]) => {
-    return new Promise<void>((resolve) => {
-      const generation = typingGenerationRef.current;
-      const lineId = createLineId();
-      setOutputLines((previous) => [
-        ...previous,
-        { id: lineId, text: "", tone },
-      ]);
+  const typeLine = useCallback(
+    (text: string, tone?: OutputLine["tone"]) => {
+      return new Promise<void>((resolve) => {
+        const generation = typingGenerationRef.current;
+        const lineId = createLineId();
+        setOutputLines((previous) => [
+          ...previous,
+          { id: lineId, text: reducedMotion ? text : "", tone },
+        ]);
 
-      if (text.length === 0) {
-        resolve();
-        return;
-      }
-
-      let index = 0;
-
-      const tick = () => {
-        if (generation !== typingGenerationRef.current) {
+        if (text.length === 0 || reducedMotion) {
           resolve();
           return;
         }
 
-        index += 1;
-        setOutputLines((previous) =>
-          previous.map((line) =>
-            line.id === lineId ? { ...line, text: text.slice(0, index) } : line,
-          ),
-        );
+        let index = 0;
 
-        if (index < text.length) {
-          const tid = window.setTimeout(tick, randomTypeDelay());
-          timeoutIdsRef.current.push(tid);
-          return;
-        }
+        const tick = () => {
+          if (generation !== typingGenerationRef.current) {
+            resolve();
+            return;
+          }
 
-        resolve();
-      };
+          index += 1;
+          setOutputLines((previous) =>
+            previous.map((line) =>
+              line.id === lineId
+                ? { ...line, text: text.slice(0, index) }
+                : line,
+            ),
+          );
 
-      const tid = window.setTimeout(tick, randomTypeDelay());
-      timeoutIdsRef.current.push(tid);
-    });
-  }, []);
+          if (index < text.length) {
+            const tid = window.setTimeout(tick, randomTypeDelay());
+            timeoutIdsRef.current.push(tid);
+            return;
+          }
+
+          resolve();
+        };
+
+        const tid = window.setTimeout(tick, randomTypeDelay());
+        timeoutIdsRef.current.push(tid);
+      });
+    },
+    [reducedMotion],
+  );
 
   const runLaunchSequence = useCallback(
     async (options?: { force?: boolean }) => {
@@ -328,6 +336,8 @@ export function Terminal({
       </div>
 
       <input
+        aria-label="Terminal command"
+        autoComplete="off"
         className="terminal-screen__hidden-input"
         onChange={(event) => setInputValue(event.target.value)}
         onKeyDown={handleKeyDown}
@@ -335,8 +345,7 @@ export function Terminal({
         value={inputValue}
       />
 
-      {/* Mobile launch button */}
-      {getDeviceCapability().isMobile && !isLaunching ? (
+      {isMobile && !isLaunching ? (
         <button
           className="terminal-screen__launch-btn"
           onClick={() => void runLaunchSequence()}

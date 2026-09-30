@@ -3,9 +3,11 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Group, InstancedMesh } from "three";
 import { Color, Object3D, Vector3 } from "three";
 import { OORT_CLOUD } from "../../data/oortCloud";
+import { RENDER_QUALITY } from "../../data/renderQuality";
+import type { QualityTier } from "../../hooks/useDeviceCapability";
 
 type OortCloudProps = {
-  isMobile?: boolean;
+  qualityTier?: QualityTier;
 };
 
 type RingInstance = {
@@ -66,7 +68,8 @@ function createRingInstances(
   return result;
 }
 
-export function OortCloud({ isMobile = false }: OortCloudProps) {
+export function OortCloud({ qualityTier = "high" }: OortCloudProps) {
+  const count = RENDER_QUALITY[qualityTier].beltCount;
   const ringRef = useRef<Group>(null);
   const layerARef = useRef<InstancedMesh>(null);
   const layerBRef = useRef<InstancedMesh>(null);
@@ -74,7 +77,7 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
   const layerA = useMemo(
     () =>
       createRingInstances(
-        isMobile ? 2200 : 6800,
+        Math.floor(count * 0.65),
         OORT_CLOUD.innerRadius,
         OORT_CLOUD.outerRadius,
         OORT_CLOUD.thickness,
@@ -82,13 +85,13 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
         0.046,
         73,
       ),
-    [isMobile],
+    [count],
   );
 
   const layerB = useMemo(
     () =>
       createRingInstances(
-        isMobile ? 1200 : 3600,
+        Math.ceil(count * 0.35),
         OORT_CLOUD.innerRadius + 0.2,
         OORT_CLOUD.outerRadius - 0.2,
         OORT_CLOUD.thickness * 0.85,
@@ -96,7 +99,7 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
         0.058,
         311,
       ),
-    [isMobile],
+    [count],
   );
 
   useEffect(() => {
@@ -126,6 +129,7 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
       if (mesh.instanceColor) {
         mesh.instanceColor.needsUpdate = true;
       }
+      mesh.computeBoundingSphere();
     };
 
     applyLayer(layerARef.current, layerA);
@@ -144,7 +148,6 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
     <group ref={ringRef}>
       <instancedMesh
         args={[undefined, undefined, layerA.length]}
-        frustumCulled={false}
         ref={layerARef}
       >
         <icosahedronGeometry args={[1, 0]} />
@@ -159,10 +162,9 @@ export function OortCloud({ isMobile = false }: OortCloudProps) {
 
       <instancedMesh
         args={[undefined, undefined, layerB.length]}
-        frustumCulled={false}
         ref={layerBRef}
       >
-        <icosahedronGeometry args={[1, 1]} />
+        <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial
           emissive="#b9ecff"
           emissiveIntensity={0.18}

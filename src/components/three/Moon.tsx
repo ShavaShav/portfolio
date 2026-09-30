@@ -39,7 +39,9 @@ function createMoonTexture(moon: MoonConfig) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
 
-  const base = new Color(moon.color);
+  // Canvas pixels are sRGB; do not write Three's linear RGB values into them.
+  const base = new Color(moon.color).convertLinearToSRGB();
+  const pixels = ctx.createImageData(size, size);
   const seed = hashString(moon.id);
 
   for (let y = 0; y < size; y += 1) {
@@ -53,10 +55,14 @@ function createMoonTexture(moon: MoonConfig) {
       const r = Math.min(255, Math.max(0, Math.floor(base.r * 255 * shade)));
       const g = Math.min(255, Math.max(0, Math.floor(base.g * 255 * shade)));
       const b = Math.min(255, Math.max(0, Math.floor(base.b * 255 * shade)));
-      ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-      ctx.fillRect(x, y, 1, 1);
+      const offset = (y * size + x) * 4;
+      pixels.data[offset] = r;
+      pixels.data[offset + 1] = g;
+      pixels.data[offset + 2] = b;
+      pixels.data[offset + 3] = 255;
     }
   }
+  ctx.putImageData(pixels, 0, 0);
 
   const craterCount = 24;
   for (let i = 0; i < craterCount; i += 1) {
@@ -148,10 +154,10 @@ export function Moon({ moon, onSelect }: MoonProps) {
       />
       <meshStandardMaterial
         color={moon.color}
-        displacementMap={texture ?? undefined}
-        displacementScale={isEarlyCareerMoon ? moon.radius * 0.12 : 0}
+        bumpMap={texture ?? undefined}
+        bumpScale={isEarlyCareerMoon ? moon.radius * 0.035 : 0}
         emissive={moon.color}
-        emissiveIntensity={isHovered ? 1.0 : isEarlyCareerMoon ? 0.42 : 0.3}
+        emissiveIntensity={isHovered ? 0.3 : 0.05}
         map={texture ?? undefined}
         metalness={isEarlyCareerMoon ? 0.08 : 0}
         roughness={isEarlyCareerMoon ? 0.86 : 0.7}

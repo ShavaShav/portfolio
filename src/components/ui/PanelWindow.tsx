@@ -4,6 +4,9 @@ import { audioManager } from "../../audio/AudioManager";
 import "./PanelWindow.css";
 
 type PanelWindowProps = {
+  panelId?: string;
+  zIndex?: number;
+  onActivate?: () => void;
   title: string;
   x: number;
   y: number;
@@ -22,6 +25,9 @@ type PanelWindowProps = {
 };
 
 export function PanelWindow({
+  panelId,
+  zIndex = 4,
+  onActivate,
   title,
   x,
   y,
@@ -39,16 +45,19 @@ export function PanelWindow({
 }: PanelWindowProps) {
   if (isMinimized) {
     return (
-      <div
+      <button
+        type="button"
         className="panel-window panel-window--minimized"
+        aria-label={`Restore ${title}`}
         onClick={() => {
           audioManager.playPanelOpen();
           onMinimize();
         }}
-        style={{ position: "absolute", left: x, bottom: 8, zIndex: 4 }}
       >
+        <span className="panel-window__led" />
         <span className="panel-window__title">{title}</span>
-      </div>
+        <span aria-hidden="true">↗</span>
+      </button>
     );
   }
 
@@ -56,6 +65,10 @@ export function PanelWindow({
     <Rnd
       bounds="parent"
       className="panel-window"
+      data-panel={panelId}
+      style={{ zIndex }}
+      onPointerDownCapture={onActivate}
+      onFocusCapture={onActivate}
       dragHandleClassName="panel-window__drag-handle"
       minHeight={minHeight}
       minWidth={minWidth}
@@ -79,6 +92,8 @@ export function PanelWindow({
           <span className="panel-window__title">{title}</span>
         </div>
         <button
+          aria-label={`Minimize ${title}`}
+          title="Minimize panel"
           className="panel-window__minimize"
           onClick={() => {
             audioManager.playPanelClose();
@@ -86,7 +101,7 @@ export function PanelWindow({
           }}
           type="button"
         >
-          _
+          −
         </button>
       </div>
       <div className="panel-window__content">{children}</div>

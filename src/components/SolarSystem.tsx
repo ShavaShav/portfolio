@@ -3,7 +3,9 @@ import { useCallback, type ReactNode } from "react";
 import { Stars } from "@react-three/drei";
 import { CAMERA_ENTRANCE } from "../data/cameraPositions";
 import { PLANETS } from "../data/planets";
+import { RENDER_QUALITY } from "../data/renderQuality";
 import type { QualityTier } from "../hooks/useDeviceCapability";
+import { usePageVisibility } from "../hooks/usePageVisibility";
 import { AmbientParticles } from "./three/AmbientParticles";
 import { CameraController } from "./three/CameraController";
 import { EncounterSystem } from "./three/EncounterSystem";
@@ -12,6 +14,7 @@ import { OortCloud } from "./three/OortCloud";
 import { Planet } from "./three/Planet";
 import { PostProcessing } from "./three/PostProcessing";
 import { Sun } from "./three/Sun";
+import { ScenePerformance } from "./three/ScenePerformance";
 import "./SolarSystem.css";
 
 type SolarSystemProps = {
@@ -39,6 +42,7 @@ type SolarSystemProps = {
   visitedPlanets?: Set<string>;
   isMobile?: boolean;
   qualityTier?: QualityTier;
+  onPerformanceSample?: (fps: number) => void;
 };
 
 export function SolarSystem({
@@ -66,7 +70,10 @@ export function SolarSystem({
   visitedPlanets,
   isMobile = false,
   qualityTier = "high",
+  onPerformanceSample,
 }: SolarSystemProps) {
+  const visible = usePageVisibility();
+  const budget = RENDER_QUALITY[qualityTier];
   const handlePlanetSelect = useCallback(
     (planetId: string) => {
       if (onPlanetSelect) {
@@ -89,26 +96,45 @@ export function SolarSystem({
   return (
     <div className="solar-system">
       <Canvas
+        dpr={[1, budget.maxDpr]}
+        frameloop={visible ? "always" : "never"}
+        gl={{
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance",
+        }}
         camera={{
           fov: 60,
+          near: 0.05,
+          far: 500,
           position: CAMERA_ENTRANCE.position,
         }}
         onPointerMissed={handlePointerMissed}
       >
         <color args={["#04060d"]} attach="background" />
-        <ambientLight intensity={0.25} />
-        <pointLight color="#ffd28a" intensity={2.2} position={[0, 0, 0]} />
+        <ambientLight intensity={0.3} />
+        <pointLight
+          color="#ffe1b0"
+          intensity={65}
+          decay={1.3}
+          position={[0, 0, 0]}
+        />
         <Stars
-          count={starCount}
+          count={Math.min(starCount, budget.stars)}
           depth={90}
-          factor={5}
+          factor={2.3}
           fade
           radius={180}
           saturation={0}
-          speed={0.45}
+          speed={0.12}
         />
 
-        <Sun isMobile={isMobile} onSelect={() => handlePlanetSelect("about")} />
+        <Sun
+          isMobile={isMobile}
+          qualityTier={qualityTier}
+          showLabel={!activePlanetId}
+          onSelect={() => handlePlanetSelect("about")}
+        />
 
         {showOrbitLines
           ? PLANETS.filter((planet) => planet.showOrbitLine !== false).map(
@@ -129,11 +155,12 @@ export function SolarSystem({
             onSelect={handlePlanetSelect}
             planet={planet}
             qualityTier={qualityTier}
+            showLabel={!activePlanetId}
             visited={visitedPlanets?.has(planet.id) ?? false}
           />
         ))}
 
-        <OortCloud isMobile={isMobile} />
+        <OortCloud qualityTier={qualityTier} />
 
         <EncounterSystem
           enabled={encounterEnabled}
@@ -141,7 +168,10 @@ export function SolarSystem({
           isMobile={isMobile}
           onCrosshairTargetChange={onCrosshairEncounterChange}
         />
-        <AmbientParticles count={particleCount} />
+        {Math.min(particleCount, budget.particles) > 0 ? (
+          <AmbientParticles count={Math.min(particleCount, budget.particles)} />
+        ) : null}
+        <ScenePerformance onSample={onPerformanceSample} />
 
         <CameraController
           activePlanetId={activePlanetId}
@@ -158,7 +188,10 @@ export function SolarSystem({
           onCrosshairPlanetChange={onCrosshairPlanetChange}
           onPointerLockChange={onPointerLockChange}
         />
-        <PostProcessing reducedQuality={reducedQuality} />
+        <PostProcessing
+          reducedQuality={reducedQuality || !budget.bloom}
+          qualityTier={qualityTier}
+        />
       </Canvas>
 
       {showHint ? (

@@ -24,11 +24,9 @@ export function OrbitLine({ radius, inclination }: OrbitLineProps) {
 
   return (
     <Line
-      color="white"
-      dashed
-      dashSize={0.32}
-      gapSize={0.18}
-      opacity={0.25}
+      color="#90b3c2"
+      lineWidth={0.7}
+      opacity={0.14}
       points={points}
       transparent
     />

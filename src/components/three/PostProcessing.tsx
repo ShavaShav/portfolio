@@ -1,45 +1,35 @@
 import {
   Bloom,
-  ChromaticAberration,
   EffectComposer,
-  Vignette,
+  FXAA,
+  ToneMapping,
 } from "@react-three/postprocessing";
-import { Vector2 } from "three";
+import type { QualityTier } from "../../hooks/useDeviceCapability";
 
 type PostProcessingProps = {
   reducedQuality?: boolean;
+  qualityTier?: QualityTier;
 };
 
 export function PostProcessing({
   reducedQuality = false,
+  qualityTier = "high",
 }: PostProcessingProps) {
-  if (reducedQuality) {
-    return (
-      <EffectComposer>
-        <Bloom
-          intensity={0.8}
-          luminanceSmoothing={0.7}
-          luminanceThreshold={0.2}
-          mipmapBlur
-        />
-      </EffectComposer>
-    );
-  }
+  // Low tier bypasses all render targets and full-screen passes. The sun's
+  // Fresnel corona still provides a glow without bloom.
+  if (reducedQuality || qualityTier === "low") return null;
 
   return (
-    <EffectComposer>
+    <EffectComposer multisampling={0} enableNormalPass={false}>
       <Bloom
-        intensity={1.25}
-        luminanceSmoothing={0.7}
-        luminanceThreshold={0.15}
+        intensity={0.65}
+        luminanceSmoothing={0.4}
+        luminanceThreshold={1.1}
         mipmapBlur
+        levels={qualityTier === "high" ? 6 : 4}
       />
-      <Vignette darkness={0.45} eskil={false} offset={0.4} />
-      <ChromaticAberration
-        modulationOffset={0}
-        offset={new Vector2(0.0008, 0.0008)}
-        radialModulation={false}
-      />
+      <FXAA />
+      <ToneMapping />
     </EffectComposer>
   );
 }

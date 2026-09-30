@@ -122,7 +122,8 @@ export function CompanionScreen({
         {!isActive ? (
           <div className="companion-screen__standby">
             <div className="companion-screen__avatar">ZS</div>
-            <p>COMMS: STANDBY</p>
+            <p>Your guide to the cosmos.</p>
+            <small>Select a world to open a channel.</small>
           </div>
         ) : (
           <>
@@ -151,6 +152,7 @@ export function CompanionScreen({
             </div>
             <div className="companion-screen__input">
               <input
+                aria-label="Message your companion"
                 disabled={isLoading}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -159,6 +161,7 @@ export function CompanionScreen({
                 value={inputValue}
               />
               <button
+                aria-label="Send message"
                 disabled={isLoading || !inputValue.trim()}
                 onClick={handleSend}
                 type="button"

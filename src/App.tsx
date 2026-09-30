@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import "./App.css";
 import { audioManager } from "./audio/AudioManager";
 import { Crosshair } from "./components/Crosshair";
 import { FlightHintOverlay } from "./components/FlightHintOverlay";
 import { Mission } from "./components/Mission";
 import { PlanetDetail } from "./components/PlanetDetail";
-import { SolarSystem } from "./components/SolarSystem";
 import { Terminal } from "./components/Terminal";
 import { CompanionScreen } from "./components/cockpit/CompanionScreen";
 import { CockpitLayout } from "./components/cockpit/CockpitLayout";
@@ -23,6 +22,14 @@ import { PLANETS, getPlanetById } from "./data/planets";
 import { useDeviceCapability } from "./hooks/useDeviceCapability";
 import { usePerformanceTier } from "./hooks/usePerformanceTier";
 import { AppProvider, useAppContext } from "./state/AppState";
+import "./components/cockpit/observatory.css";
+
+// The terminal does not need to download or initialize the WebGL scene.
+const SolarSystem = lazy(() =>
+  import("./components/SolarSystem").then((module) => ({
+    default: module.SolarSystem,
+  })),
+);
 
 function renderDataContent(
   state: ReturnType<typeof useAppContext>["state"],
@@ -189,7 +196,8 @@ function CockpitExperience() {
   const [headExpanded, setHeadExpanded] = useState(false);
   const headOpenedRef = useRef(false);
   const { isMobile, qualityTier } = useDeviceCapability();
-  const performanceTier = usePerformanceTier(qualityTier);
+  const { tier: performanceTier, reportPerformance } =
+    usePerformanceTier(qualityTier);
   const isLowQuality = performanceTier === "low";
 
   useEffect(() => {
@@ -296,36 +304,47 @@ function CockpitExperience() {
     (state.view.type === "SOLAR_SYSTEM" || state.view.type === "PLANET_DETAIL");
 
   const canvas = (
-    <SolarSystem
-      activePlanetId={activePlanetId}
-      flyToPlanetId={flyingToPlanetId}
-      isEntering={isEntering}
-      isFlyingHome={state.view.type === "FLYING_HOME"}
-      onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
-      onArrivePlanet={(planetId) => {
-        audioManager.playArrivalChime();
-        dispatch({ type: "ARRIVE_AT_PLANET", planetId });
-      }}
-      onDisengagePlanet={handleDisengagePlanet}
-      onEntranceComplete={() => setIsEntering(false)}
-      onNearestPlanetChange={(planetId) =>
-        dispatch({ type: "SET_NEAREST_PLANET", planetId })
+    <Suspense
+      fallback={
+        <div className="scene-loading" role="status">
+          <span className="scene-loading__orbit" />
+          <span>CHARTING THE COSMOS</span>
+          <small>Preparing your observatory...</small>
+        </div>
       }
-      onPlanetSelect={handlePlanetSelect}
-      onCrosshairPlanetChange={setCrosshairPlanetId}
-      onCrosshairEncounterChange={setCrosshairEncounterLabel}
-      crosshairPlanetId={crosshairPlanetId}
-      onPointerLockChange={setIsPointerLocked}
-      encounterEnabled={encounterEnabled}
-      showHint={false}
-      showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
-      visitedPlanets={state.visitedPlanets}
-      starCount={isLowQuality ? 500 : isMobile ? 1500 : 5000}
-      reducedQuality={isLowQuality}
-      particleCount={isLowQuality ? 0 : isMobile ? 50 : 200}
-      isMobile={isMobile}
-      qualityTier={performanceTier}
-    />
+    >
+      <SolarSystem
+        activePlanetId={activePlanetId}
+        flyToPlanetId={flyingToPlanetId}
+        isEntering={isEntering}
+        isFlyingHome={state.view.type === "FLYING_HOME"}
+        onArriveHome={() => dispatch({ type: "ARRIVE_HOME" })}
+        onArrivePlanet={(planetId) => {
+          audioManager.playArrivalChime();
+          dispatch({ type: "ARRIVE_AT_PLANET", planetId });
+        }}
+        onDisengagePlanet={handleDisengagePlanet}
+        onEntranceComplete={() => setIsEntering(false)}
+        onNearestPlanetChange={(planetId) =>
+          dispatch({ type: "SET_NEAREST_PLANET", planetId })
+        }
+        onPlanetSelect={handlePlanetSelect}
+        onCrosshairPlanetChange={setCrosshairPlanetId}
+        onCrosshairEncounterChange={setCrosshairEncounterLabel}
+        crosshairPlanetId={crosshairPlanetId}
+        onPointerLockChange={setIsPointerLocked}
+        encounterEnabled={encounterEnabled}
+        showHint={false}
+        showOrbitLines={!isMobile && state.view.type === "SOLAR_SYSTEM"}
+        visitedPlanets={state.visitedPlanets}
+        starCount={isLowQuality ? 500 : isMobile ? 1500 : 5000}
+        reducedQuality={isLowQuality}
+        particleCount={isLowQuality ? 0 : isMobile ? 50 : 200}
+        isMobile={isMobile}
+        qualityTier={performanceTier}
+        onPerformanceSample={reportPerformance}
+      />
+    </Suspense>
   );
 
   const flightOverlays =

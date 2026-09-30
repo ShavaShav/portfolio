@@ -1,16 +1,29 @@
 import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ShaderMaterial } from "three";
+import { AdditiveBlending, BackSide, ShaderMaterial } from "three";
 import type { Mesh } from "three";
-import { sunFragmentShader, sunVertexShader } from "../../shaders/sun";
+import {
+  sunCoronaFragmentShader,
+  sunFragmentShader,
+  sunVertexShader,
+} from "../../shaders/sun";
+import { RENDER_QUALITY } from "../../data/renderQuality";
+import type { QualityTier } from "../../hooks/useDeviceCapability";
 
 type SunProps = {
   onSelect?: () => void;
   isMobile?: boolean;
+  qualityTier?: QualityTier;
+  showLabel?: boolean;
 };
 
-export function Sun({ onSelect, isMobile = false }: SunProps) {
+export function Sun({
+  onSelect,
+  isMobile = false,
+  qualityTier = "high",
+  showLabel = true,
+}: SunProps) {
   const coreRef = useRef<Mesh>(null);
   const glowRef = useRef<Mesh>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -20,12 +33,29 @@ export function Sun({ onSelect, isMobile = false }: SunProps) {
       new ShaderMaterial({
         vertexShader: sunVertexShader,
         fragmentShader: sunFragmentShader,
+        defines: qualityTier === "low" ? { LOW_QUALITY: 1 } : {},
         uniforms: {
           uTime: { value: 0 },
         },
       }),
+    [qualityTier],
+  );
+  const coronaMaterial = useMemo(
+    () =>
+      new ShaderMaterial({
+        vertexShader: sunVertexShader,
+        fragmentShader: sunCoronaFragmentShader,
+        uniforms: { uTime: { value: 0 }, uHoverBoost: { value: 0 } },
+        transparent: true,
+        depthWrite: false,
+        side: BackSide,
+        blending: AdditiveBlending,
+      }),
     [],
   );
+
+  useEffect(() => () => shaderMaterial.dispose(), [shaderMaterial]);
+  useEffect(() => () => coronaMaterial.dispose(), [coronaMaterial]);
 
   useEffect(() => {
     document.body.style.cursor = isHovered ? "pointer" : "default";
@@ -41,6 +71,8 @@ export function Sun({ onSelect, isMobile = false }: SunProps) {
 
     // Update shader time uniform
     shaderMaterial.uniforms.uTime.value = elapsed;
+    coronaMaterial.uniforms.uTime.value = elapsed;
+    coronaMaterial.uniforms.uHoverBoost.value = isHovered ? 1 : 0;
 
     if (coreRef.current) {
       coreRef.current.rotation.y += delta * 0.05;
@@ -48,7 +80,7 @@ export function Sun({ onSelect, isMobile = false }: SunProps) {
     }
 
     if (glowRef.current) {
-      glowRef.current.scale.setScalar(1.3 + Math.sin(elapsed * 0.7) * 0.03);
+      glowRef.current.scale.setScalar(1 + Math.sin(elapsed * 0.7) * 0.008);
     }
   });
 
@@ -70,7 +102,13 @@ export function Sun({ onSelect, isMobile = false }: SunProps) {
         }}
         ref={coreRef}
       >
-        <sphereGeometry args={[1.5, 64, 64]} />
+        <sphereGeometry
+          args={[
+            1.5,
+            RENDER_QUALITY[qualityTier].sphereSegments,
+            RENDER_QUALITY[qualityTier].sphereSegments,
+          ]}
+        />
       </mesh>
 
       {/* Larger invisible touch target for mobile */}
@@ -88,29 +126,26 @@ export function Sun({ onSelect, isMobile = false }: SunProps) {
       ) : null}
 
       {/* Corona glow layer */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[1.95, 32, 32]} />
-        <meshBasicMaterial
-          color={isHovered ? "#ffcc66" : "#ffbb55"}
-          opacity={isHovered ? 0.25 : 0.18}
-          transparent
-        />
+      <mesh ref={glowRef} material={coronaMaterial}>
+        <sphereGeometry args={[1.67, 32, 24]} />
       </mesh>
 
-      <Html
-        center
-        distanceFactor={10}
-        position={[0, 2.2, 0]}
-        zIndexRange={[2, 0]}
-      >
-        <div
-          className={`planet-label ${isHovered ? "planet-label--active" : ""}`}
-          style={{ pointerEvents: "none" }}
+      {showLabel ? (
+        <Html
+          center
+          distanceFactor={10}
+          position={[0, 2.2, 0]}
+          zIndexRange={[2, 0]}
         >
-          <strong>About Me</strong>
-          <span>Zach Shaver</span>
-        </div>
-      </Html>
+          <div
+            className={`planet-label ${isHovered ? "planet-label--active" : ""}`}
+            style={{ pointerEvents: "none" }}
+          >
+            <strong>About Me</strong>
+            <span>Zach Shaver</span>
+          </div>
+        </Html>
+      ) : null}
     </group>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { audioManager } from "../../audio/AudioManager";
 import { OORT_PROJECTS } from "../../data/oortCloud";
 import { PLANETS } from "../../data/planets";
@@ -41,7 +41,11 @@ export function NavScreen({
   }, [hasOpenSourceActive]);
 
   return (
-    <CockpitScreen powered>
+    <CockpitScreen className="nav-screen" powered>
+      <div className="nav-screen__heading">
+        <span>CHOOSE A DESTINATION</span>
+        <small>01 — 05</small>
+      </div>
       <MiniSystemMap
         activePlanetId={activePlanetId}
         onSelectPlanet={onSelectPlanet}
@@ -57,20 +61,33 @@ export function NavScreen({
           }}
           type="button"
         >
-          <span>About Me</span>
+          <span className="nav-screen__destination">
+            <i style={{ background: "#e9bc7b" }} />
+            <span>
+              About Me<small>The person behind the work</small>
+            </span>
+          </span>
           {visitedPlanets.has("about") ? <small>visited</small> : null}
         </button>
         {corePlanets.map((planet) => (
           <button
             className={`nav-screen__planet ${planet.id === activePlanetId ? "is-active" : ""}`}
             key={planet.id}
+            style={{ "--destination-color": planet.color } as CSSProperties}
+            aria-pressed={planet.id === activePlanetId}
             onClick={() => {
               audioManager.playClick();
               onSelectPlanet(planet.id);
             }}
             type="button"
           >
-            <span>{planet.label}</span>
+            <span className="nav-screen__destination">
+              <i style={{ background: planet.color }} />
+              <span>
+                {planet.label}
+                <small>{planet.subtitle}</small>
+              </span>
+            </span>
             {visitedPlanets.has(planet.id) ? <small>visited</small> : null}
           </button>
         ))}

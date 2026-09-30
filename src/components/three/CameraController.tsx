@@ -3,13 +3,14 @@ import gsap from "gsap";
 import { useCallback, useEffect, useRef } from "react";
 import { Euler, MathUtils, Quaternion, Vector2, Vector3 } from "three";
 import { audioManager } from "../../audio/AudioManager";
-import { CAMERA_DEFAULT } from "../../data/cameraPositions";
+import { getOverviewCameraPosition } from "../../data/cameraPositions";
 import {
   PLANETS,
   getPlanetById,
   getPlanetPositionAtTime,
 } from "../../data/planets";
 import { useIdleState } from "../../hooks/useIdleTimer";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 
 type CameraControllerProps = {
   flyToPlanetId?: string;
@@ -74,6 +75,7 @@ export function CameraController({
   onPointerLockChange,
 }: CameraControllerProps) {
   const { camera, gl, clock, size } = useThree();
+  const reducedMotion = useReducedMotion();
 
   const activeTweenRef = useRef<gsap.core.Tween | null>(null);
   const activeFlightRef = useRef<string | null>(null);
@@ -268,6 +270,27 @@ export function CameraController({
     };
   }, [handleKeyDown, handleKeyUp]);
 
+  useEffect(() => {
+    const release = () => {
+      keysRef.current.clear();
+      mouseDeltaRef.current.set(0, 0);
+      touchDeltaRef.current.set(0, 0);
+      touchLookStateRef.current.active = false;
+      audioManager.stopThrust();
+      isThrustingRef.current = false;
+    };
+    const onVisibility = () => {
+      if (document.hidden) release();
+    };
+    window.addEventListener("blur", release);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("blur", release);
+      document.removeEventListener("visibilitychange", onVisibility);
+      release();
+    };
+  }, []);
+
   // Kill tweens on unmount
   useEffect(() => {
     return () => {
@@ -293,12 +316,13 @@ export function CameraController({
       z: camera.position.z,
     };
 
+    const homePosition = getOverviewCameraPosition(size.width / size.height);
     activeTweenRef.current = gsap.to(cameraState, {
-      duration: 3.0,
+      duration: reducedMotion ? 0.15 : 3.0,
       ease: "power2.out",
-      x: CAMERA_DEFAULT.position[0],
-      y: CAMERA_DEFAULT.position[1],
-      z: CAMERA_DEFAULT.position[2],
+      x: homePosition[0],
+      y: homePosition[1],
+      z: homePosition[2],
       onUpdate: () => {
         camera.position.set(cameraState.x, cameraState.y, cameraState.z);
         camera.lookAt(0, 0, 0);
@@ -312,7 +336,14 @@ export function CameraController({
         onEntranceComplete?.();
       },
     });
-  }, [isEntering, camera, onEntranceComplete]);
+  }, [
+    isEntering,
+    camera,
+    onEntranceComplete,
+    reducedMotion,
+    size.width,
+    size.height,
+  ]);
 
   // ── Fly-to-planet / fly-home animations ───────────────────────────────────
   useEffect(() => {
@@ -339,7 +370,7 @@ export function CameraController({
         const targetPos = { x: 0, y: 2, z: 5 * portraitMultiplier };
 
         activeTweenRef.current = gsap.to(cameraState, {
-          duration: 1.5,
+          duration: reducedMotion ? 0.15 : 1.5,
           ease: "power2.inOut",
           x: targetPos.x,
           y: targetPos.y,
@@ -381,7 +412,7 @@ export function CameraController({
       const progressObj = { t: 0 };
 
       activeTweenRef.current = gsap.to(progressObj, {
-        duration: 1.5,
+        duration: reducedMotion ? 0.15 : 1.5,
         ease: "power2.inOut",
         t: 1,
         onUpdate: () => {
@@ -397,13 +428,17 @@ export function CameraController({
           // In portrait mode, pull camera back so planet fits the narrower width
           const aspect = size.width / size.height;
           const portraitMul = aspect < 1 ? 1 / aspect : 1;
-          const closeDistance = planet.radius * 3 * portraitMul;
-          const scale = closeDistance / safeDist;
+          const closeDistance =
+            planet.radius * (planet.hasRings ? 5 : 3.8) * portraitMul;
+          const radialX = pos.x / safeDist;
+          const radialZ = pos.z / safeDist;
 
+          // Approach from the sunlit side at an oblique angle: the terminator
+          // and rings are visible, rather than filling the view with night side.
           const endPos = {
-            x: pos.x + pos.x * scale,
-            y: pos.y + pos.y * scale + planet.radius * 0.5,
-            z: pos.z + pos.z * scale,
+            x: pos.x + (-radialX * 0.5 - radialZ * 0.866) * closeDistance,
+            y: pos.y + planet.radius * 0.85,
+            z: pos.z + (-radialZ * 0.5 + radialX * 0.866) * closeDistance,
           };
 
           camera.position.set(
@@ -441,12 +476,13 @@ export function CameraController({
         z: camera.position.z,
       };
 
+      const homePosition = getOverviewCameraPosition(size.width / size.height);
       activeTweenRef.current = gsap.to(cameraState, {
-        duration: 1.5,
+        duration: reducedMotion ? 0.15 : 1.5,
         ease: "power2.inOut",
-        x: CAMERA_DEFAULT.position[0],
-        y: CAMERA_DEFAULT.position[1],
-        z: CAMERA_DEFAULT.position[2],
+        x: homePosition[0],
+        y: homePosition[1],
+        z: homePosition[2],
         onUpdate: () => {
           camera.position.set(cameraState.x, cameraState.y, cameraState.z);
           camera.lookAt(0, 0, 0);
@@ -472,6 +508,7 @@ export function CameraController({
     isFlyingHome,
     onArriveHome,
     onArrivePlanet,
+    reducedMotion,
   ]);
 
   // ── Per-frame: 6DoF flight, planet tracking, proximity detection ──────────
@@ -665,6 +702,7 @@ export function CameraController({
     // --- Idle auto-rotate (solar system free-flight only, no pointer lock) ---
     if (
       isIdle &&
+      !reducedMotion &&
       !activePlanetId &&
       !flyToPlanetId &&
       !isFlyingHome &&
@@ -673,7 +711,7 @@ export function CameraController({
       !isPointerLockedRef.current
     ) {
       // Slowly orbit around origin
-      const angle = 0.0008;
+      const angle = 0.048 * dt;
       const cx = camera.position.x;
       const cz = camera.position.z;
       camera.position.x = cx * Math.cos(angle) - cz * Math.sin(angle);

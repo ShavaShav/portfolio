@@ -81,8 +81,8 @@ void main() {
   vec3 displaced = position;
 
   if (uEnableDisplacement > 0.5) {
-    float lowFreq = snoise(position * (uNoiseScale * 0.42) + vec3(uSeed * 0.5, uTime * 0.03, -uSeed * 0.35));
-    float highFreq = snoise(position * (uNoiseScale * 0.78) + vec3(-uSeed, uTime * 0.05, uSeed * 0.4));
+    float lowFreq = snoise(normalize(position) * (uNoiseScale * 0.42) + vec3(uSeed * 0.5, 0.0, -uSeed * 0.35));
+    float highFreq = snoise(normalize(position) * (uNoiseScale * 0.78) + vec3(-uSeed, 0.0, uSeed * 0.4));
     float displacement = lowFreq * 0.68 + highFreq * 0.32;
     displaced += normal * displacement * uDisplacementScale;
   }
@@ -122,21 +122,23 @@ ${SIMPLEX_NOISE_GLSL}
 
 void main() {
   vec3 sphereDirection = normalize(vObjectPosition);
+  // Solid terrain stays fixed to the rotating planet. Only gas bands flow.
+  float flow = (uSurfaceType > 0.5 && uSurfaceType < 1.5) ? uTime * 0.012 : 0.0;
   float primaryNoise = snoise(vec3(
     sphereDirection * uNoiseScale
-    + vec3(uSeed, uTime * 0.04, -uSeed)
+    + vec3(uSeed, flow, -uSeed)
   ));
   float detailNoise = snoise(vec3(
     sphereDirection * uDetailScale
-    + vec3(-uSeed * 0.35, uTime * 0.11, uSeed * 1.5)
+    + vec3(-uSeed * 0.35, flow * 1.4, uSeed * 1.5)
   ));
 
-  float pattern = primaryNoise * 0.72 + detailNoise * 0.28;
+  float pattern = primaryNoise * 0.85 + detailNoise * 0.15;
   float terranLandMask = 1.0;
 
   if (uSurfaceType < 0.5) {
     float ridges = 1.0 - abs(detailNoise);
-    pattern += ridges * 0.22;
+    pattern += ridges * 0.08;
   } else if (uSurfaceType < 1.5) {
     pattern += sin((sphereDirection.y + detailNoise * 0.18) * (10.0 + uBanding * 6.0)) * 0.26;
   } else if (uSurfaceType < 2.5) {
@@ -144,7 +146,7 @@ void main() {
   } else {
     float moisture = snoise(vec3(
       sphereDirection * (uNoiseScale * 0.7)
-      + vec3(uTime * 0.02, uSeed, 0.0)
+      + vec3(0.0, uSeed, 0.0)
     ));
     pattern += moisture * 0.15;
   }
@@ -159,7 +161,7 @@ void main() {
     float continentNoise = primaryNoise * 0.74 + detailNoise * 0.26;
     float coastlineNoise = snoise(vec3(
       sphereDirection * (uNoiseScale * 1.45)
-      + vec3(uSeed * 0.6, uTime * 0.03, -uSeed * 0.45)
+      + vec3(uSeed * 0.6, 0.0, -uSeed * 0.45)
     ));
     terranLandMask = smoothstep(
       uLandThreshold - 0.1,
@@ -179,26 +181,36 @@ void main() {
   }
 
   vec3 normalDir = normalize(vWorldNormal);
+  if (uSurfaceType < 0.5 || uSurfaceType > 1.5) {
+    // Analytic screen-space bump detail, without extra texture downloads.
+    vec3 dpdx = dFdx(vWorldPosition);
+    vec3 dpdy = dFdy(vWorldPosition);
+    vec3 r1 = cross(dpdy, normalDir);
+    vec3 r2 = cross(normalDir, dpdx);
+    float determinant = dot(dpdx, r1);
+    vec3 gradient = sign(determinant) * (dFdx(pattern) * r1 + dFdy(pattern) * r2);
+    normalDir = normalize(max(abs(determinant), 0.00001) * normalDir - gradient * 0.012);
+  }
   vec3 lightDir = normalize(-vWorldPosition);
   vec3 viewDir = normalize(cameraPosition - vWorldPosition);
   float diffuse = max(dot(normalDir, lightDir), 0.0);
   float detailBoost = uSurfaceType > 2.5 ? 0.55 : 1.0;
   float lit = clamp(
-    (0.2 + diffuse * 0.8) + detailNoise * uDetailIntensity * detailBoost,
-    0.12,
+    (0.09 + diffuse * 1.05) + detailNoise * uDetailIntensity * detailBoost,
+    0.06,
     1.35
   );
 
   vec3 finalColor = baseColor * lit;
 
   float nightMask = 1.0 - smoothstep(-0.2, 0.25, dot(normalDir, lightDir));
-  float emissiveMask = smoothstep(0.22, 0.75, abs(detailNoise + primaryNoise * 0.42));
+  float emissiveMask = smoothstep(0.48, 0.82, detailNoise + primaryNoise * 0.25);
   float emissiveScale = uSurfaceType > 2.5 ? 0.45 : 1.0;
   finalColor +=
     uEmissiveDetailColor *
     emissiveMask *
     nightMask *
-    uEmissiveDetailStrength *
+    uEmissiveDetailStrength * 0.35 *
     emissiveScale;
 
   if (uSurfaceType > 2.5) {
@@ -212,6 +224,8 @@ void main() {
   finalColor += vec3(0.06, 0.09, 0.08) * uHoverBoost;
 
   gl_FragColor = vec4(finalColor, 1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }
 `;
 
@@ -239,21 +253,26 @@ varying vec3 vWorldNormal;
 void main() {
   vec3 normalDir = normalize(vWorldNormal);
   vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-  float fresnel = pow(1.0 - max(dot(normalDir, viewDir), 0.0), 2.6);
-  float pulse = 0.9 + sin(uTime * 0.65 + vWorldPosition.y * 1.4) * 0.1;
-  float alpha = fresnel * uAtmosphereIntensity * pulse + (uHoverBoost * 0.08);
+  // Back faces need an absolute dot; max(dot, 0) makes the entire shell glow.
+  float fresnel = pow(1.0 - abs(dot(normalDir, viewDir)), 3.2);
+  float daylight = smoothstep(-0.45, 0.8, dot(normalDir, normalize(-vWorldPosition)));
+  float alpha = fresnel * (uAtmosphereIntensity + uHoverBoost * 0.12) * (0.22 + daylight * 0.78);
   gl_FragColor = vec4(uAtmosphereColor, clamp(alpha, 0.0, 1.0));
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }
 `;
 
 export const cloudVertexShader = `
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
+varying vec3 vObjectDirection;
 
 void main() {
   vec4 worldPosition = modelMatrix * vec4(position, 1.0);
   vWorldPosition = worldPosition.xyz;
   vWorldNormal = normalize(mat3(modelMatrix) * normal);
+  vObjectDirection = normalize(position);
   gl_Position = projectionMatrix * viewMatrix * worldPosition;
 }
 `;
@@ -269,11 +288,12 @@ uniform vec3 uCloudColor;
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
+varying vec3 vObjectDirection;
 
 ${SIMPLEX_NOISE_GLSL}
 
 void main() {
-  vec3 direction = normalize(vWorldPosition);
+  vec3 direction = normalize(vObjectDirection);
   float cloudLarge = snoise(vec3(
     direction * uNoiseScale
     + vec3(uTime * uSpeed, 0.0, uSeed)
@@ -293,5 +313,7 @@ void main() {
   vec3 color = uCloudColor * (0.72 + density * 0.28) * dayShade;
 
   gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.95));
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }
 `;

@@ -1,50 +1,44 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { QualityTier } from "./useDeviceCapability";
 
-/**
- * Monitors FPS during the first 4 seconds of rendering.
- * If average FPS < 30, downgrades quality to "low".
- */
-export function usePerformanceTier(initialTier: QualityTier): QualityTier {
-  const [tier, setTier] = useState<QualityTier>(initialTier);
-  const frameCountRef = useRef(0);
-  const lastTimeRef = useRef(performance.now());
-  const measuringRef = useRef(true);
-  const rafRef = useRef<number | null>(null);
+const QUALITY_ORDER: QualityTier[] = ["low", "medium", "high"];
 
-  useEffect(() => {
-    if (!measuringRef.current) return;
+export function getNextQualityTier(
+  tier: QualityTier,
+  fps: number,
+): QualityTier {
+  if (fps < 26) return "low";
+  if (fps < 42 && tier === "high") return "medium";
+  return tier;
+}
 
-    const startTime = performance.now();
-    const MEASURE_DURATION = 4000; // 4 seconds
+/** Downshift after sustained slow scene frames, never unrelated DOM RAF ticks. */
+export function usePerformanceTier(initialTier: QualityTier) {
+  const [measuredTier, setMeasuredTier] = useState<QualityTier>("high");
+  const slowWindows = useRef(0);
+  const tier =
+    QUALITY_ORDER[
+      Math.min(
+        QUALITY_ORDER.indexOf(initialTier),
+        QUALITY_ORDER.indexOf(measuredTier),
+      )
+    ];
 
-    const tick = () => {
-      if (!measuringRef.current) return;
-
-      frameCountRef.current++;
-      const now = performance.now();
-      const elapsed = now - startTime;
-
-      if (elapsed >= MEASURE_DURATION) {
-        measuringRef.current = false;
-        const avgFps = (frameCountRef.current / elapsed) * 1000;
-        if (avgFps < 30) {
-          setTier("low");
-        }
+  const reportPerformance = useCallback(
+    (fps: number) => {
+      const next = getNextQualityTier(tier, fps);
+      if (next === tier) {
+        slowWindows.current = 0;
         return;
       }
+      slowWindows.current += 1;
+      if (slowWindows.current >= 2) {
+        slowWindows.current = 0;
+        setMeasuredTier(next);
+      }
+    },
+    [tier],
+  );
 
-      lastTimeRef.current = now;
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      measuringRef.current = false;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  return tier;
+  return { tier, reportPerformance };
 }

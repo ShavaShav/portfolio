@@ -4,20 +4,24 @@
  */
 
 export const sunVertexShader = `
-  varying vec2 vUv;
   varying vec3 vPosition;
+  varying vec3 vWorldPosition;
+  varying vec3 vWorldNormal;
   uniform float uTime;
 
   void main() {
-    vUv = uv;
-    vPosition = position;
+    vPosition = normalize(position);
+    vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 export const sunFragmentShader = `
   uniform float uTime;
-  varying vec2 vUv;
+  varying vec3 vPosition;
+  varying vec3 vWorldPosition;
+  varying vec3 vWorldNormal;
 
   // --- Simplex noise (Stefan Gustavson, public domain) ---
   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -87,25 +91,48 @@ export const sunFragmentShader = `
   // --- End simplex noise ---
 
   void main() {
-    vec2 uv = vUv;
-    float n1 = snoise(vec3(uv * 3.0, uTime * 0.3));
-    float n2 = snoise(vec3(uv * 6.0, uTime * 0.5));
-    float n3 = snoise(vec3(uv * 12.0, uTime * 0.8));
+    // Spherical 3D coordinates avoid the old texture's seam and polar stretch.
+    vec3 direction = normalize(vPosition);
+    float n1 = snoise(direction * 4.0 + vec3(0.0, uTime * 0.08, 0.0));
+    float n2 = snoise(direction * 11.0 + vec3(uTime * 0.12, 0.0, 0.0));
+    #ifdef LOW_QUALITY
+      float n3 = 0.0;
+    #else
+      float n3 = snoise(direction * 24.0 + vec3(0.0, 0.0, uTime * 0.15));
+    #endif
 
     float pattern = n1 * 0.5 + n2 * 0.35 + n3 * 0.15;
 
-    vec3 coreColor = vec3(1.0, 0.38, 0.0);
-    vec3 midColor  = vec3(1.0, 0.78, 0.0);
-    vec3 hotColor  = vec3(1.0, 1.0,  0.88);
+    vec3 coreColor = vec3(0.95, 0.22, 0.025);
+    vec3 midColor  = vec3(1.0, 0.57, 0.12);
+    vec3 hotColor  = vec3(1.0, 0.9, 0.55);
 
     vec3 color = mix(coreColor, midColor, smoothstep(-0.35, 0.25, pattern));
     color = mix(color, hotColor, smoothstep(0.25, 0.75, pattern));
 
     // Limb darkening
-    vec2 centered = uv - 0.5;
-    float dist = length(centered) * 2.0;
-    float limb = 1.0 - smoothstep(0.5, 1.0, dist) * 0.4;
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    float facing = max(dot(normalize(vWorldNormal), viewDir), 0.0);
+    float limb = 0.55 + 0.45 * pow(facing, 0.4);
 
-    gl_FragColor = vec4(color * limb, 1.0);
+    gl_FragColor = vec4(color * limb * 2.1, 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`;
+
+export const sunCoronaFragmentShader = `
+  uniform float uTime;
+  uniform float uHoverBoost;
+  varying vec3 vWorldPosition;
+  varying vec3 vWorldNormal;
+  void main() {
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    float facing = abs(dot(normalize(vWorldNormal), viewDir));
+    float rim = pow(1.0 - facing, 3.0);
+    float wisps = 0.9 + 0.1 * sin(vWorldPosition.y * 12.0 + uTime * 0.25);
+    gl_FragColor = vec4(vec3(1.0, 0.48, 0.12), rim * wisps * (0.34 + uHoverBoost * 0.14));
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;

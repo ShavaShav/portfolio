@@ -58,6 +58,11 @@ export function StatusBar({
         <p>
           SURVEYED: {visitedCount}/{totalPlanets}
         </p>
+        <progress
+          aria-label="Destinations surveyed"
+          value={visitedCount}
+          max={totalPlanets}
+        />
       </div>
     </CockpitScreen>
   );

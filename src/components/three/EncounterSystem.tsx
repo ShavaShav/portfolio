@@ -840,7 +840,7 @@ export function EncounterSystem({
           asteroid.radialDriftAmplitude;
 
       asteroid.jitterOffset.addScaledVector(asteroid.jitterVelocity, dt);
-      asteroid.jitterVelocity.multiplyScalar(Math.max(0, 1 - dt * 2.2));
+      asteroid.jitterVelocity.multiplyScalar(Math.exp(-dt * 2.2));
 
       const x = Math.cos(orbitAngle) * localRadius + asteroid.jitterOffset.x;
       const z = Math.sin(orbitAngle) * localRadius + asteroid.jitterOffset.z;

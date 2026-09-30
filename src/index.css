@@ -45,3 +45,59 @@ body {
   color: #f0f0ff;
   font-family: var(--font-sans);
 }
+
+:root {
+  color-scheme: dark;
+  --ui-bg: #070d16;
+  --ui-surface: rgba(11, 20, 31, 0.94);
+  --ui-raised: rgba(21, 34, 47, 0.75);
+  --ui-border: rgba(160, 193, 213, 0.18);
+  --ui-accent: #8ce8cd;
+  --ui-accent-soft: rgba(140, 232, 205, 0.08);
+  --ui-text: #e4edf1;
+  --ui-muted: #92a6b5;
+  --ui-amber: #e9bc7b;
+  --ui-radius: 14px;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+button,
+a,
+input,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a,
+summary {
+  touch-action: manipulation;
+}
+:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 4px;
+}
+::selection {
+  background: rgba(140, 232, 205, 0.25);
+  color: #fff;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #344653 transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,5 +1,16 @@
 import { OORT_CLOUD } from "../../data/oortCloud";
 import { PLANETS } from "../../data/planets";
+import type { KeyboardEvent } from "react";
+
+function activateOnKey(
+  event: KeyboardEvent<SVGGElement>,
+  activate: () => void,
+) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    activate();
+  }
+}
 
 type MiniSystemMapProps = {
   activePlanetId?: string;
@@ -23,23 +34,34 @@ export function MiniSystemMap({
 
   return (
     <div className="mini-system-map">
-      <svg viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`}>
-        <circle
-          cx={MAP_CENTER}
-          cy={MAP_CENTER}
-          fill="transparent"
+      <svg
+        viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`}
+        aria-label="Interactive destination map"
+      >
+        <g
+          role="button"
+          tabIndex={0}
+          aria-label="Explore About Me"
           onClick={() => onSelectPlanet("about")}
-          r={16}
-          style={{ cursor: "pointer" }}
-        />
-        <circle
-          className="mini-system-map__sun"
-          cx={MAP_CENTER}
-          cy={MAP_CENTER}
-          onClick={() => onSelectPlanet("about")}
-          r={7}
-          style={{ cursor: "pointer" }}
-        />
+          onKeyDown={(event) =>
+            activateOnKey(event, () => onSelectPlanet("about"))
+          }
+        >
+          <circle
+            cx={MAP_CENTER}
+            cy={MAP_CENTER}
+            fill="transparent"
+            r={16}
+            style={{ cursor: "pointer" }}
+          />
+          <circle
+            className="mini-system-map__sun"
+            cx={MAP_CENTER}
+            cy={MAP_CENTER}
+            r={7}
+            style={{ cursor: "pointer" }}
+          />
+        </g>
 
         {PLANETS.filter((planet) => planet.showOrbitLine !== false).map(
           (planet) => (
@@ -78,12 +100,20 @@ export function MiniSystemMap({
           const bodyRadius = isProject ? (isActive ? 6 : 4) : isActive ? 10 : 7;
 
           return (
-            <g key={planet.id}>
+            <g
+              key={planet.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Explore ${planet.label}`}
+              onClick={() => onSelectPlanet(planet.id)}
+              onKeyDown={(event) =>
+                activateOnKey(event, () => onSelectPlanet(planet.id))
+              }
+            >
               <circle
                 cx={x}
                 cy={y}
                 fill="transparent"
-                onClick={() => onSelectPlanet(planet.id)}
                 r={16}
                 style={{ cursor: "pointer" }}
               />
@@ -92,7 +122,6 @@ export function MiniSystemMap({
                 cx={x}
                 cy={y}
                 fill={planet.color}
-                onClick={() => onSelectPlanet(planet.id)}
                 r={bodyRadius}
                 stroke={isActive ? "#e8fff3" : "transparent"}
                 strokeWidth={isActive ? 2 : 0}

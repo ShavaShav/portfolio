@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import type { PanelId } from "../../hooks/usePanelLayout";
 import { usePanelLayout } from "../../hooks/usePanelLayout";
 import { PanelWindow } from "../ui/PanelWindow";
@@ -39,6 +39,7 @@ export function CockpitLayout({
   onToggleAudio,
 }: CockpitLayoutProps) {
   const [booted, setBooted] = useState(false);
+  const [activePanel, setActivePanel] = useState<PanelId | null>(null);
   const { layouts, updatePanel, resetLayout, toggleMinimize } =
     usePanelLayout();
 
@@ -54,6 +55,9 @@ export function CockpitLayout({
 
     return (
       <PanelWindow
+        panelId={panelId}
+        zIndex={activePanel === panelId ? 5 : 4}
+        onActivate={() => setActivePanel(panelId)}
         title={panelTitles?.[panelId] ?? DEFAULT_PANEL_TITLES[panelId]}
         powered={panelPowered?.[panelId] ?? true}
         popout={panelPopouts?.[panelId]}
@@ -62,7 +66,10 @@ export function CockpitLayout({
         width={layouts[panelId].width}
         height={layouts[panelId].height}
         isMinimized={layouts[panelId].minimized}
-        onMinimize={() => toggleMinimize(panelId)}
+        onMinimize={() => {
+          setActivePanel(panelId);
+          toggleMinimize(panelId);
+        }}
         onDragStop={(x, y) => updatePanel(panelId, { x, y })}
         onResizeStop={(width, height, x, y) =>
           updatePanel(panelId, { width, height, x, y })
@@ -84,11 +91,18 @@ export function CockpitLayout({
         onResetLayout={resetLayout}
       />
 
-      {renderPanel("nav", screens.nav)}
-      {renderPanel("data", screens.data)}
-      {renderPanel("companion", screens.companion)}
-      {renderPanel("status", screens.status)}
-      {renderPanel("flight", screens.flight)}
+      {(Object.keys(layouts) as PanelId[])
+        .filter((id) => !layouts[id].minimized)
+        .map((id) => (
+          <Fragment key={id}>{renderPanel(id, screens[id])}</Fragment>
+        ))}
+      <div className="cockpit-layout__dock" aria-label="Minimized panels">
+        {(Object.keys(layouts) as PanelId[])
+          .filter((id) => layouts[id].minimized)
+          .map((id) => (
+            <div key={id}>{renderPanel(id, screens[id])}</div>
+          ))}
+      </div>
     </div>
   );
 }

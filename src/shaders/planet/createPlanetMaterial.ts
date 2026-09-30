@@ -2,12 +2,13 @@ import {
   AdditiveBlending,
   BackSide,
   Color,
-  DoubleSide,
+  FrontSide,
   MeshStandardMaterial,
   ShaderMaterial,
 } from "three";
 import type { PlanetVisualConfig } from "../../data/planets";
 import type { QualityTier } from "../../hooks/useDeviceCapability";
+import { RENDER_QUALITY } from "../../data/renderQuality";
 import {
   atmosphereFragmentShader,
   atmosphereVertexShader,
@@ -96,24 +97,24 @@ export function createPlanetMaterial(
 
   if (qualityTier === "low") {
     const surfaceMaterial = new MeshStandardMaterial({
-      color: config.baseColor,
+      color: visual.palette[1],
       emissive: visual.emissiveDetailColor || config.emissiveColor,
-      emissiveIntensity: 0.52,
-      roughness: 0.62,
-      metalness: 0.2,
+      emissiveIntensity: 0.08,
+      roughness: 0.8,
+      metalness: 0.05,
     });
 
     return {
       surfaceMaterial,
       atmosphereMaterial: null,
       cloudMaterial: null,
-      geometrySegments: 28,
+      geometrySegments: RENDER_QUALITY.low.sphereSegments,
       atmosphereScale: 1.04,
       cloudScale: 1.08,
       cloudRotationSpeed: 0,
       update: () => undefined,
       setHover: (hovered) => {
-        surfaceMaterial.emissiveIntensity = hovered ? 1.0 : 0.52;
+        surfaceMaterial.emissiveIntensity = hovered ? 0.24 : 0.08;
       },
       dispose: () => {
         surfaceMaterial.dispose();
@@ -141,8 +142,8 @@ export function createPlanetMaterial(
       uDetailScale: { value: visual.detailScale * (highQuality ? 1 : 0.82) },
       uBanding: { value: visual.banding },
       uSurfaceType: { value: toSurfaceTypeValue(visual.surfaceType) },
-      uUseThirdColor: { value: highQuality ? 1 : 0 },
-      uDetailIntensity: { value: highQuality ? 0.2 : 0.12 },
+      uUseThirdColor: { value: 1 },
+      uDetailIntensity: { value: highQuality ? 0.07 : 0.04 },
       uEmissiveDetailStrength: {
         value: visual.emissiveDetailStrength * (highQuality ? 1 : 0.72),
       },
@@ -165,7 +166,7 @@ export function createPlanetMaterial(
     uniforms: {
       uTime: { value: 0 },
       uAtmosphereIntensity: {
-        value: visual.atmosphereIntensity * (highQuality ? 1 : 0.78),
+        value: visual.atmosphereIntensity * (highQuality ? 0.7 : 0.5),
       },
       uHoverBoost: { value: 0 },
       uAtmosphereColor: { value: makeColor(visual.atmosphereColor) },
@@ -193,7 +194,7 @@ export function createPlanetMaterial(
       },
       transparent: true,
       depthWrite: false,
-      side: DoubleSide,
+      side: FrontSide,
     });
   }
 
@@ -201,8 +202,8 @@ export function createPlanetMaterial(
     surfaceMaterial,
     atmosphereMaterial,
     cloudMaterial,
-    geometrySegments: highQuality ? 72 : 48,
-    atmosphereScale: highQuality ? 1.1 : 1.065,
+    geometrySegments: RENDER_QUALITY[qualityTier].sphereSegments,
+    atmosphereScale: highQuality ? 1.045 : 1.035,
     cloudScale: 1.032,
     cloudRotationSpeed: cloudConfig?.speed ?? 0,
     update: (elapsedTime: number) => {

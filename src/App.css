@@ -77,3 +77,36 @@
   font-size: 11px;
   background: rgba(0, 255, 136, 0.07);
 }
+
+.scene-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: #070d16;
+  color: #8ce8cd;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+.scene-loading small {
+  color: #92a6b5;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.scene-loading__orbit {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #8ce8cd22;
+  border-top-color: #8ce8cd;
+  border-radius: 50%;
+  animation: scene-loading-spin 1.5s linear infinite;
+}
+@keyframes scene-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -78,9 +78,9 @@ const CORE_PLANETS: PlanetConfig[] = [
     companionGreeting:
       "Welcome to Obviant - this is where I'm working now. A small military contracting startup where I wear a lot of hats. Want to see what I've been building, or jump into a mission?",
     visual: {
-      palette: ["#541209", "#b63c1d", "#f3772f"],
-      atmosphereColor: "#ff8f55",
-      atmosphereIntensity: 0.56,
+      palette: ["#38241f", "#96634b", "#c5a18a"],
+      atmosphereColor: "#e9a581",
+      atmosphereIntensity: 0.44,
       noiseScale: 3.9,
       detailScale: 9.6,
       banding: 1.25,
@@ -108,9 +108,9 @@ const CORE_PLANETS: PlanetConfig[] = [
     companionGreeting:
       "Amazon Web Services - I built accessibility infrastructure here that touched 40+ AWS services. The mission on this planet is about a performance problem I solved. Curious?",
     visual: {
-      palette: ["#5f3609", "#d9851f", "#ffe2a0"],
-      atmosphereColor: "#ffd28a",
-      atmosphereIntensity: 0.86,
+      palette: ["#59472f", "#b9986c", "#edd5a3"],
+      atmosphereColor: "#e9c895",
+      atmosphereIntensity: 0.5,
       noiseScale: 2.55,
       detailScale: 5.8,
       banding: 3.2,

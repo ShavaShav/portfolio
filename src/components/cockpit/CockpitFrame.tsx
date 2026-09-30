@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AudioToggle } from "../ui/AudioToggle";
 import { SocialLinks } from "../ui/SocialLinks";
 
@@ -7,7 +7,7 @@ const BOOT_LINES = [
   "COMMS... ONLINE",
   "SENSORS... ONLINE",
   "PROPULSION... STANDBY",
-  "DIGITAL COSMOS v2.0 READY",
+  "SHAVERVERSE / OBSERVATORY READY",
 ];
 
 type CockpitFrameProps = {
@@ -24,31 +24,41 @@ export function CockpitFrame({
   onResetLayout,
 }: CockpitFrameProps) {
   const [bootText, setBootText] = useState<string | null>(null);
-  const hasBootedRef = useRef(false);
 
   useEffect(() => {
-    if (!booted || hasBootedRef.current) return;
-    hasBootedRef.current = true;
+    if (!booted) return;
 
     let i = 0;
+    let timer: number;
     const show = () => {
       if (i < BOOT_LINES.length) {
         setBootText(BOOT_LINES[i]);
         i++;
-        window.setTimeout(show, 420);
+        timer = window.setTimeout(show, 420);
       } else {
         // Fade out after last line
-        window.setTimeout(() => setBootText(null), 900);
+        timer = window.setTimeout(() => setBootText(null), 900);
       }
     };
     show();
+    return () => window.clearTimeout(timer);
   }, [booted]);
 
   return (
     <header className={`cockpit-frame ${booted ? "is-booted" : ""}`}>
       <div className="cockpit-frame__identity">
-        <strong>ZACH SHAVER</strong>
-        <span>Software Engineer - Digital Cosmos</span>
+        <div className="cockpit-frame__monogram" aria-hidden="true">
+          ZS<span>.</span>
+        </div>
+        <div>
+          <strong>ZACH SHAVER</strong>
+          <span>SOFTWARE ENGINEER / SHAVERVERSE</span>
+        </div>
+      </div>
+
+      <div className="cockpit-frame__designation" aria-hidden="true">
+        <span>OBSERVATORY</span>
+        <small>SYSTEM 001 / EXPLORATION MODE</small>
       </div>
 
       {bootText ? (
@@ -61,8 +71,9 @@ export function CockpitFrame({
             className="cockpit-frame__reset"
             onClick={onResetLayout}
             type="button"
+            title="Restore the default panel arrangement"
           >
-            RESET
+            RESET LAYOUT
           </button>
         ) : null}
         <AudioToggle enabled={audioEnabled} onToggle={onToggleAudio} />

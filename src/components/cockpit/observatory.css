@@ -1,0 +1,641 @@
+/* The observatory skin is shared by draggable desktop panels and mobile sheets. */
+.cockpit-frame {
+  height: 84px;
+  padding: 16px 24px;
+  background: linear-gradient(180deg, #0b1420fa, #0b1420eb);
+  border-bottom: 1px solid var(--ui-border);
+}
+.cockpit-frame__identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cockpit-frame__identity > div:last-child {
+  display: grid;
+  gap: 4px;
+}
+.cockpit-frame__identity strong {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--ui-text);
+}
+.cockpit-frame__identity span {
+  color: var(--ui-muted);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+.cockpit-frame__monogram {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.08em;
+}
+.cockpit-frame__monogram span {
+  color: var(--ui-accent);
+  font-size: 26px;
+}
+.cockpit-frame__designation {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+.cockpit-frame__designation > span {
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  color: #c4d3dc;
+}
+.cockpit-frame__designation small {
+  font-size: 7px;
+  letter-spacing: 0.13em;
+  color: var(--ui-muted);
+}
+.cockpit-frame__boot-status {
+  top: 92px;
+  color: var(--ui-accent);
+  font-size: 9px;
+}
+.cockpit-frame__reset,
+.audio-toggle,
+.social-links a {
+  border: 1px solid var(--ui-border);
+  background: #ffffff03;
+  color: var(--ui-muted);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+.audio-toggle[aria-pressed="true"] {
+  border-color: #8ce8cd40;
+  color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+.cockpit-frame__reset:hover,
+.audio-toggle:hover,
+.social-links a:hover {
+  background: #a0c1d512;
+  color: var(--ui-text);
+}
+.cockpit-screen {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.cockpit-screen.is-standby {
+  border: 0;
+  filter: none;
+}
+.cockpit-screen__body {
+  padding: 16px;
+}
+.cockpit-screen__scanline {
+  opacity: 0.035;
+}
+.cockpit-screen.is-powered .cockpit-screen__scanline::after {
+  display: none;
+}
+.nav-screen .cockpit-screen__body {
+  overflow-y: auto;
+}
+.nav-screen__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--ui-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+.nav-screen__heading small {
+  color: var(--ui-amber);
+  font-size: 8px;
+}
+.mini-system-map {
+  position: relative;
+  border-bottom: 1px solid #a0c1d515;
+  background: radial-gradient(ellipse, #8ce8cd08, transparent 70%);
+}
+.mini-system-map svg {
+  max-width: 210px;
+}
+.mini-system-map__orbit {
+  stroke: #aecad336;
+}
+.nav-screen__list {
+  gap: 5px;
+  margin-top: 14px;
+}
+.nav-screen__planet,
+.nav-screen__return,
+.data-screen__back {
+  border: 1px solid transparent;
+  background: #a0c1d507;
+  color: var(--ui-text);
+  border-radius: 7px;
+}
+.nav-screen__planet {
+  min-height: 48px;
+  padding: 8px 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-align: left;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.nav-screen__planet:hover {
+  background: #a0c1d511;
+  border-color: var(--ui-border);
+}
+.nav-screen__planet.is-active {
+  background: var(--ui-accent-soft);
+  border-color: #8ce8cd40;
+}
+.nav-screen__destination {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.nav-screen__destination > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px
+    color-mix(in srgb, var(--destination-color, #e9bc7b) 25%, transparent);
+}
+.nav-screen__destination > span {
+  display: grid;
+  gap: 3px;
+}
+.nav-screen__planet small {
+  color: var(--ui-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+.nav-screen__destination small {
+  font-family: var(--font-sans);
+  font-size: 10px;
+}
+.nav-screen__group {
+  border-color: var(--ui-border);
+  background: #a0c1d504;
+}
+.nav-screen__group-toggle {
+  font-size: 10px;
+  min-height: 44px;
+  color: #bdcdd7;
+  padding: 9px;
+}
+.nav-screen__group-toggle small {
+  color: var(--ui-muted);
+  font-size: 8px;
+}
+.nav-screen__group-toggle::before {
+  color: var(--ui-accent);
+}
+.nav-screen__group-toggle.is-active {
+  background: var(--ui-accent-soft);
+}
+.nav-screen__planet--sub {
+  min-height: 40px;
+  font-size: 10px;
+}
+.nav-screen__return,
+.data-screen__back {
+  border-color: var(--ui-border);
+  padding: 9px 12px;
+  color: var(--ui-accent);
+  font-size: 10px;
+}
+.system-overview {
+  color: var(--ui-text);
+  gap: 18px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.system-overview > p {
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.system-overview button {
+  background: #a0c1d507;
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 14px;
+  line-height: 1.5;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+}
+.system-overview button:hover {
+  background: var(--ui-accent-soft);
+  border-color: #8ce8cd55;
+}
+.system-overview__group {
+  background: #a0c1d504;
+  border-color: var(--ui-border);
+  padding: 12px;
+}
+.system-overview__group > summary {
+  color: var(--ui-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+.system-overview__sublist {
+  border-color: var(--ui-border);
+}
+.system-overview__sublist button {
+  background: transparent;
+  font-size: 11px;
+}
+.planet-detail,
+.mission-view {
+  color: #bcccd7;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.7;
+  padding-right: 3px;
+  gap: 18px;
+}
+.planet-detail__header {
+  gap: 6px;
+}
+.planet-detail__eyebrow {
+  color: var(--ui-amber);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+.planet-detail__header h2 {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  color: var(--ui-text);
+}
+.planet-detail__meta,
+.planet-detail__location,
+.planet-detail__summary {
+  color: var(--ui-muted);
+  line-height: 1.7;
+}
+.planet-detail__block,
+.mission-view__header,
+.mission-view__briefing,
+.mission-view__steps,
+.mission-view__outcome {
+  border-color: var(--ui-border);
+  background: #a0c1d504;
+  padding: 14px;
+}
+.planet-detail__block h3 {
+  font-family: var(--font-mono);
+  color: #d4e0e7;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+}
+.planet-detail__chip {
+  background: var(--ui-accent-soft);
+  border: 1px solid #8ce8cd22;
+  color: var(--ui-accent);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 4px 8px;
+  border-radius: 5px;
+}
+.planet-detail__links a,
+.planet-detail__project-card {
+  background: #a0c1d508;
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+  font-size: 11px;
+}
+.planet-detail__links a:hover,
+.planet-detail__project-card:hover {
+  background: var(--ui-accent-soft);
+}
+.planet-detail__mission-btn,
+.mission-view__btn {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: #0b251d;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 11px 14px;
+  font-weight: 600;
+}
+.mission-step {
+  background: #a0c1d505;
+  border-color: var(--ui-border);
+}
+.mission-choice {
+  background: #a0c1d508;
+  border-color: var(--ui-border);
+  font-family: var(--font-sans);
+  color: var(--ui-text);
+}
+.mission-choice:hover:not(:disabled) {
+  background: var(--ui-accent-soft);
+  border-color: #8ce8cd55;
+}
+.mission-step__prompt,
+.mission-view__progress-hint,
+.mission-view__copilot {
+  color: var(--ui-muted);
+}
+.companion-screen.is-active {
+  box-shadow: none;
+}
+.companion-screen__standby {
+  gap: 12px;
+}
+.companion-screen__standby p {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ui-text);
+}
+.companion-screen__standby small {
+  font-size: 9px;
+  color: var(--ui-muted);
+}
+.companion-screen__avatar {
+  border: 1px solid #8ce8cd35;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--ui-accent);
+  background: radial-gradient(circle, #8ce8cd15, transparent);
+  font-size: 12px;
+}
+.companion-screen__message {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.companion-screen__text {
+  color: var(--ui-text);
+  background: #a0c1d50a;
+  border-color: #a0c1d516;
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+.companion-screen__text {
+  font-family: var(--font-sans);
+}
+.talking-head {
+  filter: saturate(0.6) sepia(0.2) hue-rotate(95deg);
+}
+.talking-head__wrapper {
+  border-color: var(--ui-border);
+  background: var(--ui-surface);
+  box-shadow: none;
+}
+.transmission-overlay--text,
+.transmission-overlay--fade {
+  background: #030a1366;
+}
+.transmission-overlay__text {
+  color: var(--ui-accent);
+  font-size: clamp(12px, 2vw, 20px);
+  text-shadow: 0 0 24px #8ce8cd33;
+  letter-spacing: 0.16em;
+}
+.transmission-overlay__scanline {
+  opacity: 0.12;
+}
+.companion-screen__message--user .companion-screen__text {
+  background: var(--ui-accent-soft);
+  border-color: #8ce8cd25;
+  color: #cceae2;
+}
+.companion-screen__badge {
+  color: var(--ui-accent);
+  background: #8ce8cd12;
+  border-color: #8ce8cd25;
+}
+.companion-screen__input {
+  gap: 8px;
+  padding-top: 10px;
+  border-color: var(--ui-border);
+}
+.companion-screen__input input {
+  min-width: 0;
+  min-height: 36px;
+  background: #050b14;
+  border: 1px solid var(--ui-border);
+  color: var(--ui-text);
+  font-size: 11px;
+  padding: 9px 11px;
+}
+.companion-screen__input input::placeholder {
+  color: var(--ui-muted);
+}
+.companion-screen__input input:focus {
+  border-color: #8ce8cd88;
+  box-shadow: none;
+}
+.companion-screen__input button {
+  background: var(--ui-accent);
+  color: #09221c;
+  border: 0;
+  width: 36px;
+}
+.companion-screen__input button:hover:not(:disabled) {
+  background: #b2f4df;
+}
+.status-bar {
+  gap: 9px;
+}
+.status-bar p {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--ui-muted);
+  letter-spacing: 0.06em;
+}
+.status-bar p:first-child {
+  color: var(--ui-accent);
+}
+.status-bar progress {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  border-radius: 4px;
+  background: #a0c1d514;
+}
+.status-bar progress::-webkit-progress-bar {
+  background: #a0c1d514;
+  border-radius: 4px;
+}
+.status-bar progress::-webkit-progress-value {
+  background: var(--ui-accent);
+  border-radius: 4px;
+}
+.status-bar progress::-moz-progress-bar {
+  background: var(--ui-accent);
+}
+.flight-hint-overlay {
+  background: #0b1420f0;
+  backdrop-filter: none;
+  padding: 14px 16px;
+  color: var(--ui-text);
+}
+.flight-hint-overlay__title {
+  color: var(--ui-muted);
+  border-color: var(--ui-border);
+  font-size: 8px;
+  margin-bottom: 11px;
+}
+.flight-hint-overlay__list {
+  gap: 7px;
+}
+.flight-hint-overlay__kbd {
+  background: #a0c1d508;
+  border-color: var(--ui-border);
+  color: #c3d5dd;
+  font-size: 9px;
+}
+.flight-hint-overlay__desc {
+  color: var(--ui-muted);
+  font-size: 9px;
+}
+.flight-hint-overlay__sep {
+  color: var(--ui-muted);
+}
+.overlay-sheet {
+  background: #0b1420fa;
+  border-color: var(--ui-border);
+  box-shadow: 0 -20px 80px #00000055;
+}
+.overlay-sheet__header {
+  padding: 18px 20px;
+  border-color: var(--ui-border);
+}
+.overlay-sheet__title {
+  color: var(--ui-text);
+  font-size: 10px;
+}
+.overlay-sheet__close {
+  color: var(--ui-muted);
+  border-color: var(--ui-border);
+  min-width: 36px;
+  min-height: 36px;
+}
+.overlay-sheet__body {
+  padding: 20px;
+  min-height: 0;
+}
+.overlay-sheet__body:has(> .talking-head__wrapper--mobile) {
+  display: flex;
+  flex-direction: column;
+}
+.overlay-sheet__body:has(> .talking-head__wrapper--mobile) > .cockpit-screen {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+.talking-head__wrapper--mobile {
+  flex-shrink: 0;
+}
+.overlay-sheet__scanline {
+  display: none;
+}
+.visor-hud__top {
+  height: 60px;
+  padding: max(12px, env(safe-area-inset-top)) 18px 12px;
+  background: #0b1420;
+  border-color: var(--ui-border);
+}
+.visor-hud__monogram {
+  color: var(--ui-text);
+  font-family: var(--font-sans);
+  font-size: 18px;
+  letter-spacing: -0.06em;
+}
+.visor-hud__status {
+  color: var(--ui-muted);
+  font-size: 8px;
+  max-width: 140px;
+}
+.visor-hud__bottom {
+  height: auto;
+  min-height: 68px;
+  padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+  background: #0b1420;
+  border-color: var(--ui-border);
+}
+.visor-hud__telemetry {
+  color: var(--ui-muted);
+  font-size: 8px;
+}
+.visor-hud__btn {
+  min-height: 44px;
+  min-width: 48px;
+  padding: 8px 12px;
+  background: #a0c1d505;
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+  font-size: 10px;
+}
+.visor-hud__btn.is-active {
+  background: var(--ui-accent-soft);
+  border-color: #8ce8cd55;
+  color: var(--ui-accent);
+}
+.visor-hud__tap-hint {
+  color: #a7bbc6;
+  font-size: 9px;
+  bottom: 22px;
+}
+@media (max-width: 1200px) {
+  .cockpit-frame__designation {
+    display: none;
+  }
+  .cockpit-frame__controls {
+    gap: 6px;
+  }
+}
+
+@media (max-height: 950px) and (min-width: 768px) {
+  .nav-screen .cockpit-screen__body {
+    padding: 12px;
+  }
+  .nav-screen .mini-system-map svg {
+    max-width: 130px;
+  }
+  .nav-screen__planet {
+    min-height: 44px;
+  }
+}
+@media (max-width: 768px) {
+  .companion-screen__message {
+    font-size: 14px;
+  }
+  .companion-screen__input input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .companion-screen__input button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .overlay-sheet__body > .cockpit-screen {
+    height: calc(100% - 100px);
+    min-height: 200px;
+  }
+}

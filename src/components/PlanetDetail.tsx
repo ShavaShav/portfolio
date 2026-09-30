@@ -25,6 +25,9 @@ export function PlanetDetail({ planetId, onStartMission }: PlanetDetailProps) {
   return (
     <section className="planet-detail">
       <header className="planet-detail__header">
+        <span className="planet-detail__eyebrow">
+          DESTINATION / {planet.visual?.surfaceType ?? "STAR"}
+        </span>
         <h2>{content.title}</h2>
         <p className="planet-detail__meta">
           {content.role} - {content.period}
